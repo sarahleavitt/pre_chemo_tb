@@ -1,0 +1,339 @@
+
+## Function to load packages
+reload_source <- function(){
+  if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+  if (!require('tidyr')) install.packages('tidyr'); library('tidyr')
+  if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+  if (!require('purrr')) install.packages('purrr'); library('purrr')
+  if (!require('naniar')) install.packages('naniar'); library('naniar')
+  if (!require('readxl')) install.packages('readxl'); library('readxl')
+  if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
+  if (!require('stringr')) install.packages('stringr'); library('stringr')
+}
+
+
+## Function to read all sheets from an excel file
+read_excel_allsheets <- function(filename, tibble = TRUE) {
+  sheets <- readxl::excel_sheets(filename)
+  x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+  if(!tibble) x <- lapply(x, as.data.frame)
+  names(x) <- sheets
+  x
+}
+
+
+## Function to turn one sheet of study data into individual-level data
+studyToInd <- function(DF, outcome = c("mortality", "cure")){
+  
+  DF <- DF %>% filter(!is.na(cohort_id))
+  DF <- DF[, !grepl("\\.\\.", names(DF))]
+  
+  DF <- DF %>% mutate(n = round(n, 0),
+                      c1a = round(c1a, 0),
+                      c1b = round(c1b, 0),
+                      c2 = round(c2, 0),
+                      l = round(l, 0))
+  
+  #Finding all-cause mortality
+  if(is.na(DF$c1a_plus_b)[1]){
+    DF <- DF %>% mutate(c1a_plus_b = c1a + c1b) 
+  }
+  
+  if(outcome == "mortality"){
+    cohorts <- DF %>%
+      group_by(cohort_id) %>%
+      group_modify(~ cohortToInd(.x)) %>%
+      ungroup()
+  }
+
+  if(outcome == "cure"){
+    cohorts <- DF %>%
+      group_by(cohort_id) %>%
+      group_modify(~ cohortToIndCure(.x)) %>%
+      ungroup()
+  }
+  
+  cohorts <- as.data.frame(cohorts)
+}
+
+
+## Function to turn one cohort into individual cure data (run by studyToInd)
+cohortToIndCure <- function(DFc, timepoints = c(3, 5, 10)){
+  
+  nTotal <- as.numeric(DFc[1, "n"])
+  
+  ind <- NULL
+  for(t in timepoints){
+    nCure <- as.numeric(DFc[DFc$interval_r == t, "c2"])
+    nLost <- sum(DFc[DFc$interval_r <= t, "l"])
+    n <- nTotal - nLost
+    
+    cure <- cbind.data.frame("time" = t, "cure" = rep(1, nCure))
+    censor <- cbind.data.frame("time" = t, "cure" = rep(0, n - nCure))
+    ind <- bind_rows(ind, cure, censor)
+  }
+  
+  ind <- ind %>% mutate(start_type = DFc$start_type[1],
+                        sanatorium = DFc$sanatorium[1],
+                        severity = DFc$stratified_var[1],
+                        paper_id = as.character(DFc$paper_id[1]),
+                        study_id = ifelse(grepl("1029", paper_id), "1029", paper_id))
+}
+
+
+
+## Function to turn one cohort into individual mortality data (run by studyToInd)
+cohortToInd <- function(DFc){
+  
+  #Creating individual data where event = 1 means that the subject died and event = 0 means they were censored
+  ind <- NULL
+  for(i in 1:nrow(DFc)){
+    row <- DFc[i, ]
+    interval_l <- row$interval_l
+    interval_r <- row$interval_r
+    
+    #If there is TB verses all-cause mortality, split the two, if not combine
+    if(!is.na(DFc$c1a[1])){
+      
+      death_tb <- cbind.data.frame(rep(interval_l, row$c1a),
+                                   rep(interval_r, row$c1a),
+                                   rep(1, row$c1a))
+      names(death_tb) <- c("interval_l", "interval_r", "death_tb")
+      death_all <- cbind.data.frame(rep(interval_l, row$c1b),
+                                    rep(interval_r, row$c1b),
+                                    rep(1, row$c1b))
+      names(death_all) <- c("interval_l", "interval_r", "death_all")
+      
+      event <- death_tb %>%
+        bind_rows(death_all) %>%
+        replace_na(list(death_tb = 0, death_all = 0)) %>%
+        mutate(event = death_all + death_tb)
+    }else{
+      event <- cbind.data.frame(rep(interval_l, row$c1a_plus_b),
+                                rep(interval_r, row$c1a_plus_b),
+                                rep(1, row$c1a_plus_b))
+      names(event) <- c("interval_l", "interval_r", "event")
+    }
+    
+    #Changing interval_l values of 0 to be left censored at interval_r and setting interval_r to missing
+    event <- event %>%
+      mutate(interval_l_new = ifelse(interval_l == 0, interval_r, interval_l),
+             interval_r = ifelse(interval_l == 0, NA, interval_r)) %>%
+      select(-interval_l) %>%
+      rename(interval_l = interval_l_new)
+    
+    #Finding those who were LTFU
+    censor <- cbind.data.frame(rep(interval_l, row$l),
+                               rep(interval_r, row$l),
+                               rep(0, row$l),
+                               rep(0, row$l),
+                               rep(0, row$l))
+    names(censor) <- c("interval_l", "interval_r", "death_tb", "death_all", "event")
+    
+    indTemp <- bind_rows(event, censor)
+    ind <- bind_rows(ind, indTemp)
+  }
+  
+  #Adding individuals who are censored at the end of the follow-up
+  total <- DFc$n[1]
+  haveOutcome <- nrow(ind)
+  endTime <- DFc$interval_r[nrow(DFc)]
+  censor <- cbind.data.frame(rep(endTime, total - haveOutcome), 
+                             rep(0, total - haveOutcome),
+                             rep(0, total - haveOutcome),
+                             rep(0, total - haveOutcome))
+  names(censor) <- c("interval_l", "death_tb", "death_all", "event")
+  
+  ind <- bind_rows(ind, censor)
+  
+  #Adding interval censor info
+  #For interval censoring 0=right censored, 1=event at time, 2=left censored, 3=interval censored
+  ind2 <- ind %>%
+    mutate(eventIC = ifelse(event == 0, 0,
+                            ifelse(is.na(interval_r), 2, 3)),
+           death_tbIC = ifelse(death_tb == 0, 0,
+                               ifelse(is.na(interval_r), 2, 3)),
+           start_type = DFc$start_type[1],
+           sanatorium = DFc$sanatorium[1],
+           stratified_var = DFc$stratified_var[1],
+           paper_id = as.character(DFc$paper_id[1]))
+  
+  return(ind2)
+}
+
+
+
+
+## Function to format results of Bayesian analysis
+formatBayesian <- function(res, data, label, fixed = FALSE){
+  
+  #Parameter values
+  if(fixed == FALSE){
+    
+    param <- res[row.names(res) %in% c("mu", "sdlog", "theta", "med_all",
+                                       "pred_all[1]", "pred_all[5]", "pred_all[10]"), ]
+    names(param) <- c("cilb", "lowerquant", "est", "upperquant", "ciub")
+    param <- param %>% mutate(value = row.names(param),
+                              value = ifelse(value == "mu", "meanlog",
+                                      ifelse(value == "med_all", "median", gsub("_all\\[|\\]", "", value))),
+                              label = label)
+    
+    #Overall survival and density curves
+    sdlog <- param %>% filter(value == "sdlog") %>% pull(est)
+    meanlog <- param %>% filter(value == "meanlog") %>% pull(est)
+    x <- seq(0, 30, 0.01)
+    dens <- dlnorm(x, meanlog, sdlog)
+    surv <- plnorm(x, meanlog, sdlog, lower.tail = FALSE)
+    
+    #Credible bounds for survival curves
+    credint <- res[grepl("pred_all", row.names(res)), ]
+    credint <- credint %>%
+      mutate(x = as.numeric(str_extract(row.names(.), "[0-9]+"))) %>%
+      select(x, surv_est = `50%`, cilb = `2.5%`, ciub = `97.5%`) %>%
+      bind_rows(c(x = 0, surv_est = 1, cilb = 1, ciub = 1))
+    
+    surv_dens <- cbind.data.frame(x, dens, surv, "label" = label) %>%
+      full_join(credint, by = "x")
+    
+  } else{
+    
+    param <- res[row.names(res) %in% c("meanlog_min", "meanlog_mod", "meanlog_adv",
+                                       "sdlog", "theta", "med_min", "med_mod", "med_adv",
+                                       "pred_min[1]", "pred_min[5]", "pred_min[10]",
+                                       "pred_mod[1]", "pred_mod[5]", "pred_mod[10]",
+                                       "pred_adv[1]", "pred_adv[5]", "pred_adv[10]"), ]
+    names(param) <- c("cilb", "lowerquant", "est", "upperquant", "ciub")
+    param <- param %>% mutate(label = label,
+                              severity = ifelse(grepl("min", row.names(.)), "Minimal",
+                                         ifelse(grepl("mod", row.names(.)), "Moderate",
+                                         ifelse(grepl("adv", row.names(.)), "Advanced", NA))),
+                              value = gsub("_[a-z]*$|_[a-z]*\\[|\\]", "", row.names(.)),
+                              value = ifelse(value == "med", "median", value))
+    
+    #Overall survival and density curves
+    sdlog <- param %>% filter(value == "sdlog") %>% pull(est)
+    surv_dens <- NULL
+    x <- seq(0, 30, 0.1)
+    for(sev in c("Minimal", "Moderate", "Advanced")){
+      meanlog <- param %>% filter(severity == sev, value == "meanlog") %>% pull(est)
+      
+      dens <- dlnorm(x, meanlog, sdlog)
+      surv <- plnorm(x, meanlog, sdlog, lower.tail = FALSE)
+      densTemp <- cbind.data.frame(x, "severity" = sev, meanlog, sdlog, dens, surv)
+      
+      surv_dens <- bind_rows(surv_dens, densTemp)
+    }
+    
+    #Credible bounds for survival curves
+    credint <- res[grepl("pred_[a-z]*", row.names(res)), ]
+    credint <- credint %>%
+      mutate(x = as.numeric(str_extract(row.names(.), "[0-9]+")),
+             severity = ifelse(grepl("min", row.names(.)), "Minimal",
+                               ifelse(grepl("mod", row.names(.)), "Moderate",
+                                      ifelse(grepl("adv", row.names(.)), "Advanced", NA)))) %>%
+      select(x, severity, surv_est = `50%`, cilb = `2.5%`, ciub = `97.5%`) %>%
+      bind_rows(cbind.data.frame(x = 0, severity = "Minimal", surv_est = 1, cilb = 1, ciub = 1),
+                cbind.data.frame(x = 0, severity = "Moderate", surv_est = 1, cilb = 1, ciub = 1),
+                cbind.data.frame(x = 0, severity = "Advanced", surv_est = 1, cilb = 1, ciub = 1))
+    
+    surv_dens <- surv_dens %>% 
+      mutate(label = label) %>%
+      full_join(credint, by = c("x", "severity")) %>%
+      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown")))
+  }
+  
+  
+  
+  #Individual study median
+  med_ind <- as.data.frame(res[grepl("med_ind", row.names(res)),])
+  med_ind <- med_ind %>%
+    mutate(study_sev_num = as.numeric(gsub("med_ind\\[|\\]", "", row.names(med_ind))),
+           value = "median")
+  
+  #Individual study predictions
+  pred_ind <- as.data.frame(res[grepl("pred[0-9]*\\[", row.names(res)),])
+  pred_ind <- pred_ind %>%
+    mutate(rown = row.names(.),
+           study_sev_num = as.numeric(gsub("pred[0-9]*\\[|\\]", "", rown)),
+           value = str_extract(rown, "pred[0-9]*")) %>%
+    select(-rown)
+  
+  #Individual study meanlog
+  if(fixed == FALSE){
+    mean_ind <- as.data.frame(res[grepl("meanlog", row.names(res)),])
+    mean_ind <- mean_ind %>%
+      mutate(study_sev_num = as.numeric(gsub("meanlog\\[|\\]", "", row.names(mean_ind))),
+             value = "meanlog")
+  }else{
+    mean_ind <- as.data.frame(res[grepl("meanlog_ind", row.names(res)),])
+    mean_ind <- mean_ind %>%
+      mutate(study_sev_num = as.numeric(gsub("meanlog_ind\\[|\\]", "", row.names(mean_ind))),
+             value = "meanlog")
+  }
+  
+  #Combining the above
+  ind_est <- bind_rows(med_ind, mean_ind, pred_ind)
+  names(ind_est) <- c("cilb", "lowerquant", "est", "upperquant", "ciub", "study_sev_num", "value")
+  ind_est <- ind_est %>%
+    full_join(data[[1]], by = "study_sev_num") %>%
+    left_join(covar, by = "study_sev") %>%
+    mutate(label = label) %>%
+    select(-study_sev_num, -study_id_num)
+  
+  #Finding density and survival estimates for each study
+  sdlog <- param %>% filter(value == "sdlog") %>% pull(est)
+  par_data <- ind_est %>% filter(value == "meanlog")
+  ind_surv <- NULL
+  x <- seq(0, 30, 0.1)
+  for(i in 1:nrow(par_data)){
+    row <- par_data[i,]
+    
+    dens <- dlnorm(x, row$est, sdlog)
+    surv <- plnorm(x, row$est, sdlog, lower.tail = FALSE)
+    densTemp <- cbind.data.frame(x, "study_sev" = row$study_sev, "meanlog" = row$est, sdlog, dens, surv)
+    
+    ind_surv <- bind_rows(ind_surv, densTemp)
+  }
+  ind_surv <- ind_surv %>%
+    left_join(covar, by = "study_sev") %>%
+    mutate(label = label,
+           severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown")))
+  
+  #Combining study-specific and overall median and predictions
+  pred_comb <- ind_est %>% 
+    filter(value == "median" | grepl("pred", value)) %>%
+    bind_rows(param %>% filter(value == "med" | grepl("pred", value))) %>%
+    mutate(shape = ifelse(is.na(study_sev), "Overall", "Individual"))
+
+  
+  if(fixed == FALSE){
+    pred_comb <- pred_comb %>%
+      replace_na(list(severity = "",
+                      study_sev = "Overall",
+                      first_author = "Overall")) %>%
+      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced",
+                                                    "Unknown", "")))
+  }else{
+    pred_comb <- pred_comb %>%
+      mutate(study_sev = ifelse(is.na(study_sev), paste("Overall", severity, sep = "_"),
+                                study_sev),
+             first_author = ifelse(is.na(first_author), "Overall", first_author),
+             severity = ifelse(grepl("Overall", study_sev) & severity == "Minimal", "",
+                               ifelse(grepl("Overall", study_sev) & severity == "Moderate", " ",
+                                      ifelse(grepl("Overall", study_sev) & severity == "Advanced", "  ",
+                                             severity))),
+             severity = factor(severity, levels = c("Minimal", "", "Moderate", " ", "Advanced", "  ")))
+    
+  }
+  
+  pred_comb <- pred_comb %>% 
+    mutate(pred_label = factor(value, levels = c("pred1", "pred5", "pred10", "median"),
+                               labels = c("1-Year", "5-Year", "10-Year", "Median")))
+  
+  return(list("surv_dens" = surv_dens, "param" = param,
+              "pred_comb" = pred_comb, "ind_surv" = ind_surv))
+}
+
+
+
+
