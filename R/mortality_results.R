@@ -1,42 +1,35 @@
 #Sarah V. Leavitt
-#TB Duration of Infectiousness
+#Boston University
+#Pre-chemotherapy TB Analysis
 
-## Mortality Analysis Results ##
+##############################################################################
+# This program creates figures and tables of the mortality analysis results
+##############################################################################
 
-setwd("~/Boston University/Duration_of_Infectiousness/duration_code")
-rm(list = ls())
 options(scipen=999)
 options(digits = 10)
 
-source("duration_functions.R")
+rm(list = ls())
+source("R/utils.R")
 reload_source()
 
-metaData <- read.csv("../metaData.csv")
-load('bayesian_mortality.RData')
-
 #Reading in the study_id correspondence table
-studyid <- read.csv("study_id.csv")
+studyid <- read.csv("data/study_id.csv")
 
-covar <- metaData %>%
-  full_join(studyid, by = "study_id") %>%
-  group_by(study_sev) %>%
-  summarize(first_author = first(first_author),
-            sanatorium = first(sanatorium),
-            severity = first(severity),
-            start_type = first(start_type),
-            .groups = "drop")
+#Reading in individual mortality data and analysis results
+mortalityData <- read.csv("data/mortalityData.csv")
+load('R/bayesian_mortality.RData')
 
+# Formatting results
+form_all <- formatBayesian(mortalityData, res_all, data_all, "All-cause mortality: Combined")
+form_sev <- formatBayesian(mortalityData, res_sev, data_sev, "All-cause mortality: Severity", fixed = TRUE)
+form_all_tb <- formatBayesian(mortalityData, res_all_tb, data_all_tb, "TB-specific mortality: Combined")
+form_sev_tb <- formatBayesian(mortalityData, res_sev_tb, data_sev_tb, "TB-specific mortality: Severity", fixed = TRUE)
 
-#### Formatting results ####
-
-form_all <- formatBayesian(res_all, data_all, "All-cause mortality: Combined")
-form_sev <- formatBayesian(res_sev, data_sev, "All-cause mortality: Severity", fixed = TRUE)
-form_san <- formatBayesian(res_san, data_san, "All-cause mortality: Sanatorium")
-form_nosan <- formatBayesian(res_nosan, data_nosan, "All-cause mortality: Non-Sanatorium")
-form_all_tb <- formatBayesian(res_all_tb, data_all_tb, "TB-specific mortality: Combined")
-form_sev_tb <- formatBayesian(res_sev_tb, data_sev_tb, "TB-specific mortality: Severity", fixed = TRUE)
-form_san_tb <- formatBayesian(res_san_tb, data_san_tb, "TB-specific mortality: Sanatorium")
-form_nosan_tb <- formatBayesian(res_nosan_tb, data_nosan_tb, "TB-specific mortality: Non-Sanatorium")
+form_san <- formatBayesian(mortalityData, res_san, data_san, "All-cause mortality: Sanatorium")
+form_nosan <- formatBayesian(mortalityData, res_nosan, data_nosan, "All-cause mortality: Non-Sanatorium")
+form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "TB-specific mortality: Sanatorium")
+form_nosan_tb <- formatBayesian(mortalityData, res_nosan_tb, data_nosan_tb, "TB-specific mortality: Non-Sanatorium")
 
 
 #### Survival curves ------------------------------------------------------------------------------
@@ -117,7 +110,7 @@ s2f <- ggplot(form_sev_tb$ind_surv) +
                                "Advanced" = "firebrick2", "Unknown" = "grey50")) 
 
 grid.arrange(s1, s2, s1f, s2f, nrow = 2)
-ggsave("../Figures/survival_curves.png",
+ggsave("Figures/survival_curves.png",
        arrangeGrob(s1, s2, s1f, s2f, nrow = 2),
        width = 9, height = 8.5)
 
@@ -182,12 +175,13 @@ f2f <- ggplot(form_sev_tb$pred_comb %>% filter(value != "median"),
         axis.title.y = element_blank())
 
 grid.arrange(f1, f2, f1f, f2f, nrow = 2)
-ggsave("../Figures/forest_plots.png",
+ggsave("Figures/forest_plots.png",
        arrangeGrob(f1, f2, f1f, f2f, nrow = 2),
        height = 9, width = 11)
 
 
-#### Stratified by Sanatorium ####
+
+#### Sanatorium Sensitivity Analysis----------------------------------------------------------------
 
 #Overall survival for full model
 s1s <- ggplot(bind_rows(form_san$ind_surv, form_nosan$ind_surv)) +
@@ -227,17 +221,18 @@ s2s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
                                 "Advanced" = "firebrick2", "Unknown" = "grey50"))
 
 grid.arrange(s1s, s2s, nrow = 2)
-ggsave("../Figures/sanatorium_curves.png", arrangeGrob(s1s, s2s, nrow = 2),
+ggsave("Figures/sanatorium_curves.png", arrangeGrob(s1s, s2s, nrow = 2),
        height = 7, width = 7)
 
 
 
-#### Table of Main Results ####
+#### Table of Main Results -------------------------------------------------------------------------
 
+#Combining raw tables from results lists
 raw_tab <- bind_rows(form_all$param, form_sev$param, form_san$param, form_nosan$param,
                      form_all_tb$param, form_sev_tb$param, form_san_tb$param, form_nosan_tb$param)
 
-#Adding nice ordered labels
+#Adding formatted, ordered labels
 raw_tab <- raw_tab %>%
   mutate(Severity = ifelse(is.na(severity) & grepl("Combined", label), "Combined",
                            ifelse(grepl("Non-", label), "Non-Sanatorium",
@@ -269,6 +264,7 @@ pred10_tab <- raw_tab %>%
                                             round(ciub, 2), ")")) %>%
   select(Outcome, Severity, `10-Year Survival (95% CI)`)
 
+
 #Extracting the distribution parameters
 sdlog <- raw_tab %>%
   filter(value == "sdlog") %>%
@@ -283,7 +279,6 @@ dist_tab <- raw_tab %>%
 
 
 #Finding number of papers, cohorts, individuals for each analysis
-
 data_all <- as.data.frame(t(data_all[[2]]))
 data_san <- as.data.frame(t(data_san[[2]]))
 data_nosan <- as.data.frame(t(data_nosan[[2]]))
@@ -291,10 +286,10 @@ data_all_tb <- as.data.frame(t(data_all_tb[[2]]))
 data_san_tb <- as.data.frame(t(data_san_tb[[2]]))
 data_nosan_tb <- as.data.frame(t(data_nosan_tb[[2]]))
 data_all$Severity <- "Combined"
-data_san$Severity <- "Sanatorium"
+data_san$Severity <- "Sanatorium/hospital"
 data_nosan$Severity <- "Non-Sanatorium"
 data_all_tb$Severity <- "Combined"
-data_san_tb$Severity <- "Sanatorium"
+data_san_tb$Severity <- "Sanatorium/hospital"
 data_nosan_tb$Severity <- "Non-Sanatorium"
 
 counts_all <- bind_rows(data_all, data_san, data_nosan)
@@ -302,8 +297,8 @@ counts_all$Outcome <- "All-cause mortality"
 counts_tb <- bind_rows(data_all_tb, data_san_tb, data_nosan_tb)
 counts_tb$Outcome <- "TB-specific mortality"
 
-metaData_sev <- metaData %>% filter(severity != "Unknown") #same for both all-cause and tb-specific
-counts_sev <- metaData_sev %>%
+mortalityData_sev <- mortalityData %>% filter(severity != "Unknown") #same for both all-cause and tb-specific
+counts_sev <- mortalityData_sev %>%
   group_by(severity) %>%
   summarize(nStudies = length(unique(study_id)),
             nCohorts = length(unique(cohort_id)),
@@ -329,7 +324,6 @@ final_tab <- dist_tab %>%
 #Separating sanatorium
 main_tab <- final_tab %>% filter(!grepl("San", Severity))
 san_tab <- final_tab %>% filter(grepl("San", Severity))
-
 
 #Variance of frailty terms
 theta <- raw_tab %>%

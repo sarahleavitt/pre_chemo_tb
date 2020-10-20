@@ -103,12 +103,12 @@ fit_3 <- jags(data = dt_3, model.file = m_cure,
 #Extracting data
 mcmc_3 <- as.mcmc(fit_3)
 eval_3 <- mcmc_3
-summary(eval_3)
+summary(eval_3)$quantiles
 
-png("Figures/xyplot_cure3.png")
+png("Figures/xyplot_cure.png")
 xyplot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
-png("Figures/autocorr_cure3.png")
+png("Figures/autocorr_cure.png")
 autocorr.plot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
 

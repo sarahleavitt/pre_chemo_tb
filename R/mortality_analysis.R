@@ -4,7 +4,7 @@
 
 ##############################################################################
 # This program performs the mortality Bayesian meta-analysis and saves the
-# results as an R object. This takes around 1 hour to run.
+# results as an R object. This takes around 30 minutes to run.
 ##############################################################################
 
 options(scipen=999)
@@ -20,7 +20,6 @@ mortalityData <- read.csv("data/mortalityData.csv")
 
 
 #### Models ----------------------------------------------------------------------------------------
-
 
 #### Complete model (no fixed effect for severity) ####
 
@@ -172,8 +171,8 @@ dt_all <- list(N = nrow(mortalityData),
 #Fitting the model
 fit_all <- jags(data = dt_all, model.file = m_all,
                  parameters.to.save = par_all,
-                n.iter = 1100, n.burnin = 100,
-                 n.chains = 1, n.thin = 10)
+                n.iter = 11000, n.burnin = 1000,
+                 n.chains = 1, n.thin = 20)
 
 #Extracting results
 mcmc_all <- as.mcmc(fit_all)
@@ -283,10 +282,10 @@ mcmc_all_tb <- as.mcmc(fit_all_tb)
 eval_all_tb <- mcmc_all_tb[, c("mu", "theta", "sdlog")]
 res_all_tb <- as.data.frame(summary(mcmc_all_tb)$quantiles)
 
-png("../Figures/xyplot_all_tb.png")
+png("Figures/xyplot_all_tb.png")
 xyplot(eval_all_tb)
 dev.off()
-png("../Figures/autocorr_all_tb.png")
+png("Figures/autocorr_all_tb.png")
 autocorr.plot(eval_all_tb)
 dev.off()
 
@@ -333,10 +332,10 @@ mcmc_sev_tb <- as.mcmc(fit_sev_tb)
 eval_sev_tb <- mcmc_sev_tb[, c("alpha", "bmod", "badv", "theta", "sdlog")]
 res_sev_tb <- as.data.frame(summary(mcmc_sev_tb)$quantiles)
 
-png("../Figures/xyplot_sev_tb.png")
+png("Figures/xyplot_sev_tb.png")
 xyplot(eval_sev_tb)
 dev.off()
-png("../Figures/autocorr_sev_tb.png")
+png("Figures/autocorr_sev_tb.png")
 autocorr.plot(eval_sev_tb)
 dev.off()
 
@@ -375,10 +374,10 @@ mcmc_san_tb <- as.mcmc(fit_san_tb)
 eval_san_tb <- mcmc_san_tb[, c("mu", "theta", "sdlog")]
 res_san_tb <- as.data.frame(summary(mcmc_san_tb)$quantiles)
 
-png("../Figures/xyplot_san_tb.png")
+png("Figures/xyplot_san_tb.png")
 xyplot(eval_san_tb)
 dev.off()
-png("../Figures/autocorr_san_tb.png")
+png("Figures/autocorr_san_tb.png")
 autocorr.plot(eval_san_tb)
 dev.off()
 
@@ -412,10 +411,10 @@ mcmc_nosan_tb <- as.mcmc(fit_nosan_tb)
 eval_nosan_tb <- mcmc_nosan_tb[, c("mu", "theta", "sdlog")]
 res_nosan_tb <- as.data.frame(summary(mcmc_nosan_tb)$quantiles)
 
-png("../Figures/xyplot_nosan_tb.png")
+png("Figures/xyplot_nosan_tb.png")
 xyplot(eval_nosan_tb)
 dev.off()
-png("../Figures/autocorr_nosan_tb.png")
+png("Figures/autocorr_nosan_tb.png")
 autocorr.plot(eval_nosan_tb)
 dev.off()
 
@@ -448,10 +447,10 @@ mcmc_san <- as.mcmc(fit_san)
 eval_san <- mcmc_san[, c("mu", "theta", "sdlog")]
 res_san <- as.data.frame(summary(mcmc_san)$quantiles)
 
-png("../Figures/xyplot_san.png")
+png("Figures/xyplot_san.png")
 xyplot(eval_san)
 dev.off()
-png("../Figures/autocorr_san.png")
+png("Figures/autocorr_san.png")
 autocorr.plot(eval_san)
 dev.off()
 
@@ -485,10 +484,10 @@ mcmc_nosan <- as.mcmc(fit_nosan)
 eval_nosan <- mcmc_nosan[, c("mu", "theta", "sdlog")]
 res_nosan <- as.data.frame(summary(mcmc_nosan)$quantiles)
 
-png("../Figures/xyplot_nosan.png")
+png("Figures/xyplot_nosan.png")
 xyplot(eval_nosan)
 dev.off()
-png("../Figures/autocorr_nosan.png")
+png("Figures/autocorr_nosan.png")
 autocorr.plot(eval_nosan)
 dev.off()
 
@@ -517,16 +516,18 @@ getData <- function(data){
 
 data_all <- getData(mortalityData)
 data_sev <- getData(mortalityData_sev)
-data_san <- getData(san)
-data_nosan <- getData(nosan)
-
 data_all_tb <- getData(mortalityData_tb)
 data_sev_tb <- getData(mortalityData_sev_tb)
+
+data_san <- getData(san)
+data_nosan <- getData(nosan)
 data_san_tb <- getData(san_tb)
 data_nosan_tb <- getData(nosan_tb)
 
 
-save(res_all, res_sev, res_san, res_nosan, data_all, data_sev, data_san, data_nosan,
-     res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb, data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb,
-     file = "bayesian_mortality.RData")
+save(res_all, res_sev, res_san, res_nosan,
+     data_all, data_sev, data_san, data_nosan,
+     res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb,
+     data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb,
+     file = "R/bayesian_mortality.RData")
 
