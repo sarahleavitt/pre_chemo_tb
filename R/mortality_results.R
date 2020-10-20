@@ -286,10 +286,10 @@ data_all_tb <- as.data.frame(t(data_all_tb[[2]]))
 data_san_tb <- as.data.frame(t(data_san_tb[[2]]))
 data_nosan_tb <- as.data.frame(t(data_nosan_tb[[2]]))
 data_all$Severity <- "Combined"
-data_san$Severity <- "Sanatorium/hospital"
+data_san$Severity <- "Sanatorium"
 data_nosan$Severity <- "Non-Sanatorium"
 data_all_tb$Severity <- "Combined"
-data_san_tb$Severity <- "Sanatorium/hospital"
+data_san_tb$Severity <- "Sanatorium"
 data_nosan_tb$Severity <- "Non-Sanatorium"
 
 counts_all <- bind_rows(data_all, data_san, data_nosan)
