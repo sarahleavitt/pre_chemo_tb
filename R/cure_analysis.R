@@ -1,28 +1,27 @@
 #Sarah V. Leavitt
-#TB Duration of Infectiousness
+#Boston University
+#Pre-chemotherapy TB Analysis
 
-## Cure Analysis ##
+##############################################################################
+# This program performs the cure Bayesian meta-analysis and creates tables
+# to summarize the results
+##############################################################################
 
-setwd("~/Boston University/Duration_of_Infectiousness/duration_code")
-#rm(list = ls())
 options(scipen=999)
 options(digits = 10)
+set.seed(150183)
 
-library(R2jags)
-library(lattice)
-library(mcmcplots)
-
-source("duration_functions.R")
+rm(list = ls())
+source("R/utils.R")
 reload_source()
 
-#Reading in cure data
-cureData <- read.csv("../cureData.csv")
-
 #Reading in the study_id correspondence table
-studyid <- read.csv("study_id.csv")
+studyid <- read.csv("data/study_id.csv")
+
+#Reading in cure data
+cureData <- read.csv("data/cureData.csv")
 
 cureData <- cureData %>%
-  filter(time == 3) %>%
   mutate(severity = factor(severity, levels = c("Far advanced disease", 
                                                 "Moderately advanced disease",
                                                 "Minimal disease"),
@@ -31,7 +30,7 @@ cureData <- cureData %>%
 
 
 
-#### Bayesian Model ####
+#### Bayesian Logistic Model------------------------------------------------------------------------
 
 cureAggregate <- cureData %>%
   group_by(study_id) %>%
@@ -43,10 +42,7 @@ cureAggregate <- cureData %>%
             cAdv = sum(severity == "Advanced" & cure == 1),
             .groups = "drop")
 
-par_cure <- c("alpha", "bmod", "bmin", "theta",
-              "ORmod", "ORmin", "oddsAdv", "oddsMod", "oddsMin")
-
-
+#Model
 m_cure <- function(){
   
   for (i in 1:nStudy){
@@ -84,8 +80,11 @@ m_cure <- function(){
   theta = 1/tau
 }
 
+#Parameters to track
+par_cure <- c("alpha", "bmod", "bmin", "theta",
+              "ORmod", "ORmin", "oddsAdv", "oddsMod", "oddsMin")
 
-## 3 years
+#Data
 dt_3 <- list(nStudy = length(unique(cureData$study_id)),
              nMin = cureAggregate$nMin,
              nMod = cureAggregate$nMod,
@@ -95,26 +94,27 @@ dt_3 <- list(nStudy = length(unique(cureData$study_id)),
              cAdv = cureAggregate$cAdv
 )
 
+#Fitting the model
 fit_3 <- jags(data = dt_3, model.file = m_cure,
                 parameters.to.save = par_cure,
                 n.iter = 11000, n.burnin = 1000,
                 n.chains = 1, n.thin = 20)
 
+#Extracting data
 mcmc_3 <- as.mcmc(fit_3)
 eval_3 <- mcmc_3
 summary(eval_3)
 
-png("../Figures/xyplot_cure3.png")
+png("Figures/xyplot_cure3.png")
 xyplot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
-
-png("../Figures/autocorr_cure3.png")
+png("Figures/autocorr_cure3.png")
 autocorr.plot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
 
 
 
-#### Results Summary ####
+#### Table of results-------------------------------------------------------------------------------
 
 #Odds ratios for minimal and moderate vs. advanced
 or <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%

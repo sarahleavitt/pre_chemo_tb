@@ -3,12 +3,15 @@
 reload_source <- function(){
   if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
   if (!require('tidyr')) install.packages('tidyr'); library('tidyr')
-  if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
   if (!require('purrr')) install.packages('purrr'); library('purrr')
-  if (!require('naniar')) install.packages('naniar'); library('naniar')
-  if (!require('readxl')) install.packages('readxl'); library('readxl')
-  if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
   if (!require('stringr')) install.packages('stringr'); library('stringr')
+  if (!require('naniar')) install.packages('naniar'); library('naniar')
+  if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+  if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
+  if (!require('readxl')) install.packages('readxl'); library('readxl')
+  if (!require('R2jags')) install.packages('R2jags'); library('R2jags')
+  if (!require('lattice')) install.packages('lattice'); library('lattice')
+  if (!require('mcmcplots')) install.packages('mcmcplots'); library('mcmcplots')
 }
 
 
@@ -23,37 +26,107 @@ read_excel_allsheets <- function(filename, tibble = TRUE) {
 
 
 ## Function to turn one sheet of study data into individual-level data
-studyToInd <- function(DF, outcome = c("mortality", "cure")){
+studyToInd <- function(DF, outcome = c("mortality", "cure"), timepoints = c(3, 5, 10)){
   
-  DF <- DF %>% filter(!is.na(cohort_id))
-  DF <- DF[, !grepl("\\.\\.", names(DF))]
-  
-  DF <- DF %>% mutate(n = round(n, 0),
-                      c1a = round(c1a, 0),
-                      c1b = round(c1b, 0),
-                      c2 = round(c2, 0),
-                      l = round(l, 0))
-  
-  #Finding all-cause mortality
-  if(is.na(DF$c1a_plus_b)[1]){
-    DF <- DF %>% mutate(c1a_plus_b = c1a + c1b) 
-  }
-  
+  #Creating individual-level mortality data
   if(outcome == "mortality"){
+    
+    
+    #Finding all-cause mortality
+    if(is.na(DF$c1a_plus_b)[1]){
+      DF <- DF %>% mutate(c1a_plus_b = c1a + c1b) 
+    }
+    
     cohorts <- DF %>%
       group_by(cohort_id) %>%
       group_modify(~ cohortToInd(.x)) %>%
       ungroup()
   }
 
+  #Creating individual-level cure data
   if(outcome == "cure"){
     cohorts <- DF %>%
       group_by(cohort_id) %>%
-      group_modify(~ cohortToIndCure(.x)) %>%
+      group_modify(~ cohortToIndCure(.x, timepoints = timepoints)) %>%
       ungroup()
   }
   
   cohorts <- as.data.frame(cohorts)
+}
+
+
+## Function to turn one cohort into individual mortality data (run by studyToInd)
+cohortToInd <- function(DFc){
+  
+  #Creating individual data
+  #death = 1 means that the subject died and death = 0 means they were censored
+  #death_tb = 1 means that the subject died of TB
+  #death_other = 1 means the subject died of other causes
+  
+  ind <- NULL
+  for(i in 1:nrow(DFc)){
+    row <- DFc[i, ]
+    interval_l <- row$interval_l
+    interval_r <- row$interval_r
+    
+    #If there is TB verses all-cause mortality, split the two, if not combine
+    if(!is.na(DFc$c1a[1])){
+      
+      #Death from TB
+      death_tb <- cbind.data.frame(rep(interval_l, row$c1a),
+                                   rep(interval_r, row$c1a),
+                                   rep(1, row$c1a))
+      names(death_tb) <- c("interval_l", "interval_r", "death_tb")
+      
+      #Death from other causes
+      death_other <- cbind.data.frame(rep(interval_l, row$c1b),
+                                    rep(interval_r, row$c1b),
+                                    rep(1, row$c1b))
+      names(death_other) <- c("interval_l", "interval_r", "death_other")
+      
+      #Combining death from both causes
+      death <- bind_rows(death_tb, death_other) %>%
+        replace_na(list(death_tb = 0, death_other = 0)) %>%
+        mutate(death = death_other + death_tb)
+      
+    }else{
+      death <- cbind.data.frame(rep(interval_l, row$c1a_plus_b),
+                                rep(interval_r, row$c1a_plus_b),
+                                rep(1, row$c1a_plus_b))
+      names(death) <- c("interval_l", "interval_r", "death")
+    }
+    
+    #Finding those who were lost
+    censor <- cbind.data.frame(rep(interval_l, row$l),
+                               rep(interval_r, row$l),
+                               rep(0, row$l),
+                               rep(0, row$l),
+                               rep(0, row$l))
+    names(censor) <- c("interval_l", "interval_r", "death_tb", "death_other", "death")
+    
+    indTemp <- bind_rows(death, censor)
+    ind <- bind_rows(ind, indTemp)
+  }
+  
+  #Adding individuals who are censored at the end of the follow-up
+  total <- DFc$n[1]
+  haveOutcome <- nrow(ind)
+  endTime <- DFc$interval_r[nrow(DFc)]
+  censor <- cbind.data.frame(rep(endTime, total - haveOutcome), 
+                             rep(0, total - haveOutcome),
+                             rep(0, total - haveOutcome),
+                             rep(0, total - haveOutcome))
+  names(censor) <- c("interval_l", "death_tb", "death_other", "death")
+  
+  #Adding study-level characteristics
+  ind <- bind_rows(ind, censor) %>%
+    mutate(start_type = DFc$start_type[1],
+           sanatorium = DFc$sanatorium[1],
+           severity = DFc$severity[1],
+           paper_id = as.character(DFc$paper_id[1]),
+           study_id = as.character(DFc$study_id[1]))
+  
+  return(ind)
 }
 
 
@@ -75,91 +148,13 @@ cohortToIndCure <- function(DFc, timepoints = c(3, 5, 10)){
   
   ind <- ind %>% mutate(start_type = DFc$start_type[1],
                         sanatorium = DFc$sanatorium[1],
-                        severity = DFc$stratified_var[1],
+                        severity = DFc$severity[1],
                         paper_id = as.character(DFc$paper_id[1]),
-                        study_id = ifelse(grepl("1029", paper_id), "1029", paper_id))
+                        study_id = as.character(DFc$study_id[1]))
+  
+  return(ind)
 }
 
-
-
-## Function to turn one cohort into individual mortality data (run by studyToInd)
-cohortToInd <- function(DFc){
-  
-  #Creating individual data where event = 1 means that the subject died and event = 0 means they were censored
-  ind <- NULL
-  for(i in 1:nrow(DFc)){
-    row <- DFc[i, ]
-    interval_l <- row$interval_l
-    interval_r <- row$interval_r
-    
-    #If there is TB verses all-cause mortality, split the two, if not combine
-    if(!is.na(DFc$c1a[1])){
-      
-      death_tb <- cbind.data.frame(rep(interval_l, row$c1a),
-                                   rep(interval_r, row$c1a),
-                                   rep(1, row$c1a))
-      names(death_tb) <- c("interval_l", "interval_r", "death_tb")
-      death_all <- cbind.data.frame(rep(interval_l, row$c1b),
-                                    rep(interval_r, row$c1b),
-                                    rep(1, row$c1b))
-      names(death_all) <- c("interval_l", "interval_r", "death_all")
-      
-      event <- death_tb %>%
-        bind_rows(death_all) %>%
-        replace_na(list(death_tb = 0, death_all = 0)) %>%
-        mutate(event = death_all + death_tb)
-    }else{
-      event <- cbind.data.frame(rep(interval_l, row$c1a_plus_b),
-                                rep(interval_r, row$c1a_plus_b),
-                                rep(1, row$c1a_plus_b))
-      names(event) <- c("interval_l", "interval_r", "event")
-    }
-    
-    #Changing interval_l values of 0 to be left censored at interval_r and setting interval_r to missing
-    event <- event %>%
-      mutate(interval_l_new = ifelse(interval_l == 0, interval_r, interval_l),
-             interval_r = ifelse(interval_l == 0, NA, interval_r)) %>%
-      select(-interval_l) %>%
-      rename(interval_l = interval_l_new)
-    
-    #Finding those who were LTFU
-    censor <- cbind.data.frame(rep(interval_l, row$l),
-                               rep(interval_r, row$l),
-                               rep(0, row$l),
-                               rep(0, row$l),
-                               rep(0, row$l))
-    names(censor) <- c("interval_l", "interval_r", "death_tb", "death_all", "event")
-    
-    indTemp <- bind_rows(event, censor)
-    ind <- bind_rows(ind, indTemp)
-  }
-  
-  #Adding individuals who are censored at the end of the follow-up
-  total <- DFc$n[1]
-  haveOutcome <- nrow(ind)
-  endTime <- DFc$interval_r[nrow(DFc)]
-  censor <- cbind.data.frame(rep(endTime, total - haveOutcome), 
-                             rep(0, total - haveOutcome),
-                             rep(0, total - haveOutcome),
-                             rep(0, total - haveOutcome))
-  names(censor) <- c("interval_l", "death_tb", "death_all", "event")
-  
-  ind <- bind_rows(ind, censor)
-  
-  #Adding interval censor info
-  #For interval censoring 0=right censored, 1=event at time, 2=left censored, 3=interval censored
-  ind2 <- ind %>%
-    mutate(eventIC = ifelse(event == 0, 0,
-                            ifelse(is.na(interval_r), 2, 3)),
-           death_tbIC = ifelse(death_tb == 0, 0,
-                               ifelse(is.na(interval_r), 2, 3)),
-           start_type = DFc$start_type[1],
-           sanatorium = DFc$sanatorium[1],
-           stratified_var = DFc$stratified_var[1],
-           paper_id = as.character(DFc$paper_id[1]))
-  
-  return(ind2)
-}
 
 
 
