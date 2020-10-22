@@ -32,57 +32,42 @@ form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "TB-specif
 form_nosan_tb <- formatBayesian(mortalityData, res_nosan_tb, data_nosan_tb, "TB-specific mortality: Non-Sanatorium")
 
 
-#### Survival curves ------------------------------------------------------------------------------
+#### Main text survival curves --------------------------------------------------------------------
 
 #All-cause survival for full model
-s1 <- ggplot(form_all$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.5) +
-  geom_line(data = form_all$surv_dens, aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "longdash") +
-  geom_smooth(data = form_all$surv_dens, aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
-              stat = "identity", linetype = 0, alpha = 0.25) +
+s1 <- ggplot(data = form_all$surv_dens) +
+  geom_line(aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
+              stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
   theme_bw() +
-  theme(legend.position = "none") +
-  scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
   ggtitle("All-cause mortality")
 
 #TB survival for full model
-s2 <- ggplot(form_all_tb$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.5) +
-  geom_line(data = form_all_tb$surv_dens, aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "longdash") +
-  geom_smooth(data = form_all_tb$surv_dens, aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
-              stat = "identity", linetype = 0, alpha = 0.25) +
+s2 <- ggplot(form_all_tb$surv_dens) +
+  geom_line(aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
+              stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
   theme_bw() +
-  theme(legend.position = "none") +
-  scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
   ggtitle("TB-specific mortality")
 
 
 #Overall survival for fixed effects model
-s1f <- ggplot(form_sev$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.5) +
-  geom_line(data = form_sev$surv_dens, aes(x = x, y = surv, color = severity),
-            size = 1, linetype = "longdash") +
-  geom_smooth(data = form_sev$surv_dens,
-              aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
-              stat = "identity", linetype = 0, alpha = 0.1) +
+s1f <- ggplot(form_sev$surv_dens) +
+  geom_line(aes(x = x, y = surv, color = severity),
+            size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
+              stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
   theme_bw() +
   theme(legend.position = "bottom") +
-  scale_color_manual("", drop = FALSE,
+  scale_color_manual("", drop = TRUE,
                      values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
                                 "Advanced" = "firebrick2", "Unknown" = "grey50")) +
   scale_fill_manual("", guide = FALSE,
@@ -90,14 +75,11 @@ s1f <- ggplot(form_sev$ind_surv) +
                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
 
 #TB survival for fixed effect model
-s2f <- ggplot(form_sev_tb$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.5) +
-  geom_line(data = form_sev_tb$surv_dens, aes(x = x, y = surv, color = severity),
-            size = 1, linetype = "longdash") +
-  geom_smooth(data = form_sev_tb$surv_dens,
-              aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
-              stat = "identity", linetype = 0, alpha = 0.1) +
+s2f <- ggplot(form_sev_tb$surv_dens) +
+  geom_line(aes(x = x, y = surv, color = severity),
+            size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
+              stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
   theme_bw() +
@@ -111,6 +93,75 @@ s2f <- ggplot(form_sev_tb$ind_surv) +
 
 grid.arrange(s1, s2, s1f, s2f, nrow = 2)
 ggsave("Figures/survival_curves.png",
+       arrangeGrob(s1, s2, s1f, s2f, nrow = 2),
+       width = 9, height = 8.5)
+
+
+
+#### Supplement survival curves -------------------------------------------------------------------
+
+#All-cause survival for full model
+s1 <- ggplot(form_all$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_all$surv_dens, aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "longdash") +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual("Disease Severity",
+                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
+                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+  ggtitle("All-cause mortality")
+
+#TB survival for full model
+s2 <- ggplot(form_all_tb$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_all_tb$surv_dens, aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "longdash") +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual("Disease Severity",
+                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
+                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+  ggtitle("TB-specific mortality")
+
+
+#Overall survival for fixed effects model
+s1f <- ggplot(form_sev$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_sev$surv_dens, aes(x = x, y = surv, color = severity),
+            size = 1, linetype = "longdash") +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  scale_color_manual("", drop = FALSE,
+                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
+                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
+
+#TB survival for fixed effect model
+s2f <- ggplot(form_sev_tb$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_sev_tb$surv_dens,
+            aes(x = x, y = surv, color = severity),
+            linetype = "longdash", size = 1) +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  scale_color_manual("", drop = FALSE,
+                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
+                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
+
+grid.arrange(s1, s2, s1f, s2f, nrow = 2)
+ggsave("Figures/survival_curves_supp.png",
        arrangeGrob(s1, s2, s1f, s2f, nrow = 2),
        width = 9, height = 8.5)
 
