@@ -23,7 +23,7 @@ This is the individual-level self-cure data created from pre_chemo_data.xlsx by 
 
 ***
 
-## Programs
+## Scripts
 
 ### utils.R
 
