@@ -1,4 +1,4 @@
-# pre_chemo_tb
+# Analysis of Pre-chemotherapy TB Studies
 
 This directory contains the code and data to run analyses and produce results for TITLE by Rodriguez, CA and Leavitt SV, et al. This paper describes a meta-analysis of disease prognosis (including survival and self-cure rates) of pre-chemotherapy tuberculosis studies stratified by disease severity.
 
