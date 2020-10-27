@@ -17,7 +17,7 @@ reload_source()
 studyid <- read.csv("data/study_id.csv")
 
 #Reading in individual mortality data and analysis results
-mortalityData <- read.csv("data/mortalityData.csv")
+mortalityData <- read.csv("data/mortality_data.csv")
 load('R/bayesian_mortality.RData')
 
 # Formatting results

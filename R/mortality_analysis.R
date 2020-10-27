@@ -16,7 +16,7 @@ source("R/utils.R")
 reload_source()
 
 #Reading in individual mortality data
-mortalityData <- read.csv("data/mortalityData.csv")
+mortalityData <- read.csv("data/mortality_data.csv")
 
 
 #### Models ----------------------------------------------------------------------------------------

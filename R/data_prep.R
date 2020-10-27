@@ -48,7 +48,7 @@ mortalityData <- indAll %>%
   unite(study_sev, study_id, severity, remove = FALSE) %>%
   arrange(study_sev)
 
-write.csv(mortalityData, "data/mortalityData.csv", row.names = FALSE)
+write.csv(mortalityData, "data/mortality_data.csv", row.names = FALSE)
 
 
 
@@ -60,6 +60,6 @@ cureList <- list(dataList$`1029_1055`, dataList$`1029_1056`, dataList$`48_1000_1
 ## Converting the study data to individual mortality data
 cureData <- map_dfr(cureList, studyToInd, outcome = "cure", timepoints = 3)
 
-write.csv(cureData, "data/cureData.csv", row.names = FALSE)
+write.csv(cureData, "data/cure_data.csv", row.names = FALSE)
 
 

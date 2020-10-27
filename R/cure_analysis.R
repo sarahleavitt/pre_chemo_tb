@@ -19,7 +19,7 @@ reload_source()
 studyid <- read.csv("data/study_id.csv")
 
 #Reading in cure data
-cureData <- read.csv("data/cureData.csv")
+cureData <- read.csv("data/cure_data.csv")
 
 cureData <- cureData %>%
   mutate(severity = factor(severity, levels = c("Far advanced disease", 
