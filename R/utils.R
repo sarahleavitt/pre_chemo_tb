@@ -239,7 +239,8 @@ format_surv_dens <- function(param, res, label, fixed){
     surv_dens <- surv_dens %>% 
       mutate(label = label) %>%
       full_join(credint, by = c("x", "severity")) %>%
-      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown")))
+      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown"),
+                               labels = c("Minimal", "Moderately advanced", "Far advanced", "Unknown")))
   }
   
   return(surv_dens)
@@ -308,7 +309,8 @@ format_ind_surv <- function(ind_est, covar, param, label){
   ind_surv <- ind_surv %>%
     left_join(covar, by = "study_sev") %>%
     mutate(label = label,
-           severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown")))
+           severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown"),
+                             labels = c("Minimal", "Moderately advanced", "Far advanced", "Unknown")))
   
   return(ind_surv)
 }
@@ -327,8 +329,9 @@ format_pred_comb <- function(ind_est, param, label, fixed){
       replace_na(list(severity = "",
                       study_sev = "Overall",
                       first_author = "Overall")) %>%
-      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced",
-                                                    "Unknown", "")))
+      mutate(severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown", ""),
+                               labels = c("Minimal", "Moderately\nadvanced", "Far\nadvanced",
+                                          "Unknown", "")))
   }else{
     pred_comb <- pred_comb %>%
       mutate(study_sev = ifelse(is.na(study_sev), paste("Overall", severity, sep = "_"),
@@ -338,7 +341,8 @@ format_pred_comb <- function(ind_est, param, label, fixed){
                                ifelse(grepl("Overall", study_sev) & severity == "Moderate", " ",
                                       ifelse(grepl("Overall", study_sev) & severity == "Advanced", "  ",
                                              severity))),
-             severity = factor(severity, levels = c("Minimal", "", "Moderate", " ", "Advanced", "  ")))
+             severity = factor(severity, levels = c("Minimal", "", "Moderate", " ", "Advanced", "  "),
+                               labels = c("Minimal", "", "Moderately\nadvanced", " ", "Far\nadvanced", "  ")))
     
   }
   

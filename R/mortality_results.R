@@ -68,11 +68,11 @@ s1f <- ggplot(form_sev$surv_dens) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("", drop = TRUE,
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
   scale_fill_manual("", guide = FALSE,
-                    values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                               "Advanced" = "firebrick2", "Unknown" = "grey50"))
+                    values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                               "Far advanced" = "firebrick2", "Unknown" = "grey50"))
 
 #TB survival for fixed effect model
 s2f <- ggplot(form_sev_tb$surv_dens) +
@@ -85,11 +85,11 @@ s2f <- ggplot(form_sev_tb$surv_dens) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("", guide = FALSE,
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
   scale_fill_manual("",
-                    values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                               "Advanced" = "firebrick2", "Unknown" = "grey50")) 
+                    values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                               "Far advanced" = "firebrick2", "Unknown" = "grey50"))
 
 grid.arrange(s1, s2, s1f, s2f, nrow = 2)
 ggsave("Figures/survival_curves.png",
@@ -111,8 +111,8 @@ s1 <- ggplot(form_all$ind_surv) +
   theme_bw() +
   theme(legend.position = "none") +
   scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
   ggtitle("All-cause mortality")
 
 #TB survival for full model
@@ -126,8 +126,8 @@ s2 <- ggplot(form_all_tb$ind_surv) +
   theme_bw() +
   theme(legend.position = "none") +
   scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) +
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
   ggtitle("TB-specific mortality")
 
 
@@ -142,8 +142,9 @@ s1f <- ggplot(form_sev$ind_surv) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("", drop = FALSE,
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50"),
+                     labels = c("Minimal", "Moderately\nadvanced", "Far\nadvanced", "Unknown"))
 
 #TB survival for fixed effect model
 s2f <- ggplot(form_sev_tb$ind_surv) +
@@ -157,8 +158,9 @@ s2f <- ggplot(form_sev_tb$ind_surv) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("", drop = FALSE,
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50"),
+                     labels = c("Minimal", "Moderately\nadvanced", "Far\nadvanced", "Unknown"))
 
 grid.arrange(s1, s2, s1f, s2f, nrow = 2)
 ggsave("Figures/survival_curves_supp.png",
@@ -249,8 +251,8 @@ s1s <- ggplot(bind_rows(form_san$ind_surv, form_nosan$ind_surv)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50")) 
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) 
 
 #TB survival for full model
 s2s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
@@ -268,8 +270,8 @@ s2s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
   theme_bw() +
   theme(legend.position = "bottom") +
   scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderate" = "goldenrod1",
-                                "Advanced" = "firebrick2", "Unknown" = "grey50"))
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
 
 grid.arrange(s1s, s2s, nrow = 2)
 ggsave("Figures/sanatorium_curves.png", arrangeGrob(s1s, s2s, nrow = 2),
