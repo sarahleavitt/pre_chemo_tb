@@ -137,117 +137,12 @@ par_sev <- c("theta", "sdlog", "alpha", "bmod", "badv",
 
 
 
-
-#### All-cause Mortality Analysis ------------------------------------------------------------------
-
-#interval = 1 implies x1 < t <= x2
-#dinterval() isn't working as it should so make all obs have interval = 1
-#and set x2 to be 10000 (close enough to infinity) for right censored
-mortalityData <- mortalityData %>% 
-  mutate(study_sev_num = as.numeric(factor(study_sev)),
-         study_id_num = as.numeric(factor(study_id)),
-         time = ifelse(death == 0, NA, interval_l),
-         interval = 1,
-         x1 = interval_l,
-         x2 = ifelse(death == 0, 10000, interval_r),
-         sev_mod = as.numeric(severity == "Moderate"),
-         sev_adv = as.numeric(severity == "Advanced"),
-         sev_unk = as.numeric(severity == "Unknown"))
-
-
-
-#### All-cause mortality: complete model #####
-
-#Data
-dt_all <- list(N = nrow(mortalityData),
-                interval = mortalityData$interval,
-                lim = cbind(mortalityData$x1, mortalityData$x2),
-                time = rep(NA, nrow(mortalityData)),
-                n_frail = length(unique(mortalityData$study_sev_num)),
-                frail = mortalityData$study_sev_num
-                
-)
-
-#Fitting the model
-fit_all <- jags(data = dt_all, model.file = m_all,
-                 parameters.to.save = par_all,
-                n.iter = 11000, n.burnin = 1000,
-                 n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_all <- as.mcmc(fit_all)
-eval_all <- mcmc_all[, c("mu", "theta", "sdlog")]
-res_all <- as.data.frame(summary(mcmc_all)$quantiles)
-
-png("Figures/xyplot_all.png")
-xyplot(eval_all)
-dev.off()
-png("Figures/autocorr_all.png")
-autocorr.plot(eval_all)
-dev.off()
-
-
-
-#### All-cause mortality: stratified model ####
-
-#Subsetting and formatting data
-mortalityData_sev <- mortalityData %>%
-  filter(severity != "Unknown") %>%
-  mutate(study_sev_num = as.numeric(factor(study_sev)),
-         study_id_num = as.numeric(factor(study_id)))
-
-cohort_data <- mortalityData_sev %>%
-  group_by(study_sev_num) %>%
-  summarize(study_id_num = first(study_id_num),
-            sev_mod = first(sev_mod),
-            sev_adv = first(sev_adv),
-            sev_unk = first(sev_unk),
-            .groups = "drop")
-
-#Data
-dt_sev <- list(N = nrow(mortalityData_sev),
-               interval = mortalityData_sev$interval,
-               lim = cbind(mortalityData_sev$x1, mortalityData_sev$x2),
-               time = rep(NA, nrow(mortalityData_sev)),
-               n_frail = length(unique(mortalityData_sev$study_id_num)),
-               frail = mortalityData_sev$study_id_num,
-               sev_mod = mortalityData_sev$sev_mod,
-               sev_adv = mortalityData_sev$sev_adv,
-               n_study_sev = nrow(cohort_data),
-               frail2 = cohort_data$study_id_num,
-               study_sev_mod = cohort_data$sev_mod,
-               study_sev_adv = cohort_data$sev_adv
-)
-
-
-#Fitting the model
-fit_sev <- jags(data = dt_sev, model.file = m_sev,
-                 parameters.to.save = par_sev,
-                n.iter = 11000, n.burnin = 1000,
-                 n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_sev <- as.mcmc(fit_sev)
-eval_sev <- mcmc_sev[, c("alpha", "bmod", "badv", "theta", "sdlog")]
-res_sev <- as.data.frame(summary(mcmc_sev)$quantiles)
-
-png("Figures/xyplot_sev.png")
-xyplot(eval_sev)
-dev.off()
-png("Figures/autocorr_sev.png")
-autocorr.plot(eval_sev)
-dev.off()
-
-
-
-
 #### TB Mortality Analysis--------------------------------------------------------------------------
 
 #interval = 1 implies x1 < t <= x2
 #dinterval() isn't working as it should so make all obs have interval = 1
 #and set x2 to be 10000 (close enough to infinity) for right censored
 mortalityData_tb <- mortalityData %>% 
-  filter(!paper_id %in% c("12", "65", "91")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
          time = ifelse(death_tb == 0, NA, interval_l),
@@ -419,79 +314,6 @@ autocorr.plot(eval_nosan_tb)
 dev.off()
 
 
-#### All-cause mortality: sanatorium/hospital #####
-
-#Subsetting the data
-san <- mortalityData %>%
-  filter(sanatorium == "Yes") %>%
-  mutate(study_sev_num = as.numeric(factor(study_sev)))
-
-#Data
-dt_san <- list(N = nrow(san),
-               interval = san$interval,
-               lim = cbind(san$x1, san$x2),
-               time = rep(NA, nrow(san)),
-               n_frail = length(unique(san$study_sev_num)),
-               frail = san$study_sev_num
-               
-)
-
-#Fitting the model
-fit_san <- jags(data = dt_san, model.file = m_all,
-                parameters.to.save = par_all,
-                n.iter = 11000, n.burnin = 100,
-                n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_san <- as.mcmc(fit_san)
-eval_san <- mcmc_san[, c("mu", "theta", "sdlog")]
-res_san <- as.data.frame(summary(mcmc_san)$quantiles)
-
-png("Figures/xyplot_san.png")
-xyplot(eval_san)
-dev.off()
-png("Figures/autocorr_san.png")
-autocorr.plot(eval_san)
-dev.off()
-
-
-
-#### All cause mortality: Non-sanatorium ####
-
-#Subsetting data
-nosan <- mortalityData %>%
-  filter(sanatorium == "No") %>%
-  mutate(study_sev_num = as.numeric(factor(study_sev)))
-
-#Data
-dt_nosan <- list(N = nrow(nosan),
-                 interval = nosan$interval,
-                 lim = cbind(nosan$x1, nosan$x2),
-                 time = rep(NA, nrow(nosan)),
-                 n_frail = length(unique(nosan$study_sev_num)),
-                 frail = nosan$study_sev_num
-                 
-)
-
-#Fitting model
-fit_nosan <- jags(data = dt_nosan, model.file = m_all,
-                  parameters.to.save = par_all,
-                  n.iter = 11000, n.burnin = 1000,
-                  n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_nosan <- as.mcmc(fit_nosan)
-eval_nosan <- mcmc_nosan[, c("mu", "theta", "sdlog")]
-res_nosan <- as.data.frame(summary(mcmc_nosan)$quantiles)
-
-png("Figures/xyplot_nosan.png")
-xyplot(eval_nosan)
-dev.off()
-png("Figures/autocorr_nosan.png")
-autocorr.plot(eval_nosan)
-dev.off()
-
-
 
 
 #### Compiling Results------------------------------------------------------------------------------
@@ -514,20 +336,13 @@ getData <- function(data){
   return(list(tab, counts))
 }
 
-data_all <- getData(mortalityData)
-data_sev <- getData(mortalityData_sev)
 data_all_tb <- getData(mortalityData_tb)
 data_sev_tb <- getData(mortalityData_sev_tb)
-
-data_san <- getData(san)
-data_nosan <- getData(nosan)
 data_san_tb <- getData(san_tb)
 data_nosan_tb <- getData(nosan_tb)
 
 
-save(res_all, res_sev, res_san, res_nosan,
-     data_all, data_sev, data_san, data_nosan,
-     res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb,
+save(res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb,
      data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb,
      file = "R/bayesian_mortality.RData")
 
