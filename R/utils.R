@@ -131,7 +131,7 @@ cohortToInd <- function(DFc){
 
 
 ## Function to turn one cohort into individual cure data (run by studyToInd)
-cohortToIndCure <- function(DFc, timepoints = c(3, 5, 10)){
+cohortToIndCure <- function(DFc, timepoints = c(3, 4, 5, 10)){
   
   nTotal <- as.numeric(DFc[1, "n"])
   

@@ -142,20 +142,22 @@ par_sev <- c("theta", "sdlog", "alpha", "bmod", "badv",
 #interval = 1 implies x1 < t <= x2
 #dinterval() isn't working as it should so make all obs have interval = 1
 #and set x2 to be 10000 (close enough to infinity) for right censored
-mortalityData_tb <- mortalityData %>% 
-  mutate(study_sev_num = as.numeric(factor(study_sev)),
-         study_id_num = as.numeric(factor(study_id)),
-         time = ifelse(death_tb == 0, NA, interval_l),
+mortalityData <- mortalityData %>% 
+  mutate(time = ifelse(death_tb == 0, NA, interval_l),
          interval = 1,
          x1 = interval_l,
-         x2 = ifelse(death_tb == 0, 10000, interval_r),
-         sev_mod = as.numeric(severity == "Moderate"),
-         sev_adv = as.numeric(severity == "Advanced"),
-         sev_unk = as.numeric(severity == "Unknown"))
+         x2 = ifelse(death_tb == 0, 10000, interval_r))
 
 
 
 #### TB mortality: complete model ####
+
+#Removing severity stratified but only four-year mortality data for study 79_1023
+mortalityData_tb <- mortalityData %>%
+  filter(!cohort_id %in% c("79_1023_5", "79_1023_6", "79_1023_7")) %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)),
+         study_id_num = as.numeric(factor(study_id)))
+  
 
 #Data
 dt_all_tb <- list(N = nrow(mortalityData_tb),
@@ -189,10 +191,13 @@ dev.off()
 #### TB mortality: stratified model ####
 
 #Subsetting and formatting data
-mortalityData_sev_tb <- mortalityData_tb %>%
+mortalityData_sev_tb <- mortalityData %>%
   filter(severity != "Unknown") %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
-         study_id_num = as.numeric(factor(study_id)))
+         study_id_num = as.numeric(factor(study_id)),
+         sev_mod = as.numeric(severity == "Moderate"),
+         sev_adv = as.numeric(severity == "Advanced"),
+         sev_unk = as.numeric(severity == "Unknown"))
 
 cohort_data_tb <- mortalityData_sev_tb %>%
   group_by(study_sev_num) %>%

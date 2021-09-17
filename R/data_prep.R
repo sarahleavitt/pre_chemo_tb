@@ -58,8 +58,11 @@ cureList <- list(dataList$`1029_1055`, dataList$`1029_1056`, dataList$`48_1000_1
                  dataList$`45`, dataList$`67`)
 
 ## Converting the study data to individual mortality data
-cureData <- map_dfr(cureList, studyToInd, outcome = "cure", timepoints = 3)
+cureData1 <- map_dfr(cureList, studyToInd, outcome = "cure", timepoints = 3)
 
-write.csv(cureData, "data/cure_data.csv", row.names = FALSE)
+## Extracting four year survival from 79_1023
+cureData2 <- studyToInd(dataList$`79_1023_sev`, outcome = "cure", timepoints = 4)
+
+write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FALSE)
 
 
