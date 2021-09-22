@@ -32,16 +32,6 @@ cureData <- cureData %>%
 
 #### Bayesian Logistic Model------------------------------------------------------------------------
 
-cureAggregate <- cureData %>%
-  group_by(study_id) %>%
-  summarize(nMin = sum(severity == "Minimal"),
-            nMod = sum(severity == "Moderate"),
-            nAdv = sum(severity == "Advanced"),
-            cMin = sum(severity == "Minimal" & cure == 1),
-            cMod = sum(severity == "Moderate" & cure == 1),
-            cAdv = sum(severity == "Advanced" & cure == 1),
-            .groups = "drop")
-
 #Model
 m_cure <- function(){
   
@@ -84,14 +74,30 @@ m_cure <- function(){
 par_cure <- c("alpha", "bmod", "bmin", "theta",
               "ORmod", "ORmin", "oddsAdv", "oddsMod", "oddsMin")
 
+
+#### Three year only analysis ----------------------------------------------------------------------
+
+## Running the model
+cureData_3 <- cureData %>% filter(study_id != "79_1023")
+
+cureAggregate_3 <- cureData_3 %>%
+  group_by(study_id) %>%
+  summarize(nMin = sum(severity == "Minimal"),
+            nMod = sum(severity == "Moderate"),
+            nAdv = sum(severity == "Advanced"),
+            cMin = sum(severity == "Minimal" & cure == 1),
+            cMod = sum(severity == "Moderate" & cure == 1),
+            cAdv = sum(severity == "Advanced" & cure == 1),
+            .groups = "drop")
+
 #Data
-dt_3 <- list(nStudy = length(unique(cureData$study_id)),
-             nMin = cureAggregate$nMin,
-             nMod = cureAggregate$nMod,
-             nAdv = cureAggregate$nAdv,
-             cMin = cureAggregate$cMin,
-             cMod = cureAggregate$cMod,
-             cAdv = cureAggregate$cAdv
+dt_3 <- list(nStudy = length(unique(cureData_3$study_id)),
+             nMin = cureAggregate_3$nMin,
+             nMod = cureAggregate_3$nMod,
+             nAdv = cureAggregate_3$nAdv,
+             cMin = cureAggregate_3$cMin,
+             cMod = cureAggregate_3$cMod,
+             cAdv = cureAggregate_3$cAdv
 )
 
 #Fitting the model
@@ -105,26 +111,25 @@ mcmc_3 <- as.mcmc(fit_3)
 eval_3 <- mcmc_3
 summary(eval_3)$quantiles
 
-png("Figures/xyplot_cure.png")
+png("Figures/xyplot_cure_3year.png")
 xyplot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
-png("Figures/autocorr_cure.png")
+png("Figures/autocorr_cure_3year.png")
 autocorr.plot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
 
 
-
-#### Table of results-------------------------------------------------------------------------------
+## Table of results
 
 #Odds ratios for minimal and moderate vs. advanced
-or <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%
+or_3 <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%
   mutate(rownames = row.names(.),
          severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
          OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
   select(severity, OR_CI)
 
 #Table of counts per study
-cureTab <- cureAggregate %>%
+cureTab_3 <- cureAggregate_3 %>%
   mutate(study_id = as.character(study_id)) %>%
   left_join(studyid, by = "study_id") %>%
   mutate(pMin = 100 * round(cMin / nMin, 2),
@@ -137,10 +142,74 @@ cureTab <- cureAggregate %>%
          Adv_total = nAdv, Adv_cure) %>%
   arrange(first_author)
 
-#Number of studies, cohorts, individuals
-length(unique(cureData$study_id))
-length(unique(cureData$cohort_id))
-nrow(cureData)
+
+
+
+#### Three and four year analysis ------------------------------------------------------------------
+
+## Running the model
+
+cureAggregate_4 <- cureData %>%
+  group_by(study_id) %>%
+  summarize(nMin = sum(severity == "Minimal"),
+            nMod = sum(severity == "Moderate"),
+            nAdv = sum(severity == "Advanced"),
+            cMin = sum(severity == "Minimal" & cure == 1),
+            cMod = sum(severity == "Moderate" & cure == 1),
+            cAdv = sum(severity == "Advanced" & cure == 1),
+            .groups = "drop")
+
+#Data
+dt_4 <- list(nStudy = length(unique(cureData$study_id)),
+             nMin = cureAggregate_4$nMin,
+             nMod = cureAggregate_4$nMod,
+             nAdv = cureAggregate_4$nAdv,
+             cMin = cureAggregate_4$cMin,
+             cMod = cureAggregate_4$cMod,
+             cAdv = cureAggregate_4$cAdv
+)
+
+#Fitting the model
+fit_4 <- jags(data = dt_4, model.file = m_cure,
+              parameters.to.save = par_cure,
+              n.iter = 11000, n.burnin = 1000,
+              n.chains = 1, n.thin = 20)
+
+#Extracting data
+mcmc_4 <- as.mcmc(fit_4)
+eval_4 <- mcmc_4
+summary(eval_4)$quantiles
+
+png("Figures/xyplot_cure_4year.png")
+xyplot(eval_4[, c("alpha", "bmod", "bmin", "theta")])
+dev.off()
+png("Figures/autocorr_cure_4year.png")
+autocorr.plot(eval_4[, c("alpha", "bmod", "bmin", "theta")])
+dev.off()
+
+
+## Table of results
+
+#Odds ratios for minimal and moderate vs. advanced
+or_4 <- as.data.frame(summary(eval_4[, c("ORmin", "ORmod")])$quantiles) %>%
+  mutate(rownames = row.names(.),
+         severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
+         OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
+  select(severity, OR_CI)
+
+#Table of counts per study
+cureTab_4 <- cureAggregate_4 %>%
+  mutate(study_id = as.character(study_id)) %>%
+  left_join(studyid, by = "study_id") %>%
+  mutate(pMin = 100 * round(cMin / nMin, 2),
+         pMod = 100 * round(cMod / nMod, 2),
+         pAdv = 100 * round(cAdv / nAdv, 2),
+         Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
+         Mod_cure = paste0(cMod, " (", pMod, "%)"),
+         Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
+  select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
+         Adv_total = nAdv, Adv_cure) %>%
+  arrange(first_author)
 
 
 
