@@ -66,3 +66,14 @@ cureData2 <- studyToInd(dataList$`79_1023_sev`, outcome = "cure", timepoints = 4
 write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FALSE)
 
 
+#### Cure Data without severity ####
+
+cureListAll <- list(dataList$`75_1019`,dataList$`75_1020`,dataList$`75_1021`,dataList$`79_1054`,dataList$`5_1047`)
+# note that 5_1047 should only include start_Type==Exit row.
+cureDataAll <- map_dfr(cureListAll,calcCureRate)
+cureData94 <- calcCureRate(dataList$`94`)
+cureData94$study_id <- as.character(cureData94$study_id)
+cureData94$paper_id <- as.character(cureData94$paper_id)
+
+write.csv(bind_rows(cureDataAll,cureData94), "data/cure_data_all.csv", row.names = FALSE)
+

@@ -387,6 +387,11 @@ formatBayesian <- function(mortalityData, res, data, label, fixed = FALSE){
               "pred_comb" = pred_comb, "ind_surv" = ind_surv))
 }
 
-
+calcCureRate <- function(cureData){
+  cureData$cureRate <- cureData$c2/cureData$n
+  
+  return(cureData)
+  
+}
 
 
