@@ -21,8 +21,10 @@ dataList$`Data dictionary` <- NULL
 
 #### Mortality Data ####
 
+mortalityList <- dataList[!names(dataList) %in% c("75_1019", "75_1020", "75_1021", "79_1054")]
+
 #Converting the study data to individual mortality data
-indAll <- map_dfr(dataList, studyToInd, outcome = "mortality")
+indAll <- map_dfr(mortalityList, studyToInd, outcome = "mortality")
 
 #Removing people who are censored at the study start
 indAll <- indAll %>% filter(!(death == 0 & interval_l == 0))
