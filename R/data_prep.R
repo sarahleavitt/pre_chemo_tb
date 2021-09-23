@@ -19,7 +19,20 @@ dataList <- read_excel_allsheets("data/pre_chemo_data.xlsx")
 dataList$`Data dictionary` <- NULL
 
 
-#### Mortality Data ####
+#### Overall counts -------------------------------------------------------------------------------
+
+#Number of papers = 21
+
+#Number of studies
+
+#Number of cohorts
+
+#Number of patients
+
+
+
+
+#### Mortality Data -------------------------------------------------------------------------------
 
 mortalityList <- dataList[!names(dataList) %in% c("75_1019", "75_1020", "75_1021", "79_1054")]
 
@@ -54,7 +67,7 @@ write.csv(mortalityData, "data/mortality_data.csv", row.names = FALSE)
 
 
 
-#### Cure Data ####
+#### Cure Data with severity ----------------------------------------------------------------------
 
 cureList <- list(dataList$`1029_1055`, dataList$`1029_1056`, dataList$`48_1000_1029`,
                  dataList$`45`, dataList$`67`)
@@ -68,7 +81,10 @@ cureData2 <- studyToInd(dataList$`79_1023_sev`, outcome = "cure", timepoints = 4
 write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FALSE)
 
 
-#### Cure Data without severity ####
+
+#### Cure Data without severity -------------------------------------------------------------------
+
+#Laura, you need to add dataList$`12`, dataList$`65`, dataList$`91` to this list
 
 cureListAll <- list(dataList$`75_1019`,dataList$`75_1020`,dataList$`75_1021`,dataList$`79_1054`,dataList$`5_1047`)
 # note that 5_1047 should only include start_Type==Exit row.
