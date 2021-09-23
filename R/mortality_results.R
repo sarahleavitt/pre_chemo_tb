@@ -20,10 +20,10 @@ studyid <- read.csv("data/study_id.csv")
 mortalityData <- read.csv("data/mortality_data.csv")
 load('R/bayesian_mortality.RData')
 
-# Formatting results
+#Formatting results
 form_all_tb <- formatBayesian(mortalityData, res_all_tb, data_all_tb, "Combined")
 form_sev_tb <- formatBayesian(mortalityData, res_sev_tb, data_sev_tb, "Severity", fixed = TRUE)
-form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "Sanatorium")
+form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "Sanatorium/hospital")
 form_nosan_tb <- formatBayesian(mortalityData, res_nosan_tb, data_nosan_tb, "Non-Sanatorium")
 
 
