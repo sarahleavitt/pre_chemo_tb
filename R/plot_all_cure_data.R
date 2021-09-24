@@ -38,6 +38,12 @@ ggplot(cureData2[cureData2$severity!="None",],
   labs(title="Studies with severity reported",
        x="Year since diagnosis",y="Probability of Natural Recovery",color="Severity")
 
+ggplot(cureData2[cureData2$severity!="None",],
+       aes(x=interval_r,y=cureRate,group=cohort_id,color=first_author))+
+  geom_point(aes(shape=severity))+geom_line()+xlim(0,10)+ylim(0,1)+
+  labs(title="Studies with severity reported",
+       x="Year since diagnosis",y="Probability of Natural Recovery",color="Author",shape="Severity")
+
 ### Create a data frame with all the data -------------------------------------------
 cureData3 <- cureData2[,c('study_id','severity','interval_r','n','cureRate','first_author','year')]
 
