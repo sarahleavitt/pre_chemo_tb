@@ -387,6 +387,13 @@ formatBayesian <- function(mortalityData, res, data, label, fixed = FALSE){
               "pred_comb" = pred_comb, "ind_surv" = ind_surv))
 }
 
+dblTochr <- function(dataset){
+  dataset$study_id <- as.character(dataset$study_id)
+  dataset$paper_id <- as.character(dataset$paper_id)
+  
+  return(dataset)
+}
+
 calcCureRate <- function(cureData){
   cureData$cureRate <- cureData$c2/cureData$n
   

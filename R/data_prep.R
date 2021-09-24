@@ -82,16 +82,15 @@ write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FAL
 
 
 
-#### Cure Data without severity -------------------------------------------------------------------
+#### All Cure Data ----------------------------------------------------------------------------
 
-#Laura, you need to add dataList$`12`, dataList$`65`, dataList$`91` to this list
+cureListAll <- list(dataList$`75_1019`,dataList$`75_1020`,dataList$`75_1021`,dataList$`79_1054`,
+                    dataList$`5_1047`,dataList$`94`,dataList$`12`,dataList$`65`,dataList$`91`,
+                    dataList$`1029`,dataList$`79_1023_sev`,dataList$`45`,dataList$`67`)
 
-cureListAll <- list(dataList$`75_1019`,dataList$`75_1020`,dataList$`75_1021`,dataList$`79_1054`,dataList$`5_1047`)
-# note that 5_1047 should only include start_Type==Exit row.
-cureDataAll <- map_dfr(cureListAll,calcCureRate)
-cureData94 <- calcCureRate(dataList$`94`)
-cureData94$study_id <- as.character(cureData94$study_id)
-cureData94$paper_id <- as.character(cureData94$paper_id)
+cureListAll2 <- lapply(cureListAll,dblTochr)
 
-write.csv(bind_rows(cureDataAll,cureData94), "data/cure_data_all.csv", row.names = FALSE)
+cureDataAll <- map_dfr(cureListAll2,calcCureRate)
+
+write.csv(cureDataAll, "data/cure_data_all.csv", row.names = FALSE)
 
