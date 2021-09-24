@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(warning=FALSE, message=FALSE,echo=FALSE)
 ```
 
-```{r, echo=FALSE,include=F}
+```{r, include=F}
 library(ggplot2)
 library(reshape)
 library(reshape2)
@@ -27,7 +27,7 @@ library(kableExtra)
 ## Background
 
 ```{r,include=FALSE}
-setwd("G:/My Drive/Work/TB Projects/Duration Research/pre_chemo_tb")
+setwd("C:/Users/lfwhite/Documents/GitHub/pre_chemo_tb")
 
 source("R/utils.R")
 
@@ -81,9 +81,9 @@ First a plot of the data without severity of any kind reported.
 
 ```{r}
 # plot only those without severity
-ggplot(cureData2[cureData2$severity=="None",],aes(x=interval_r,y=cureRate,group=cohort_id,color=cohort_id))+
+ggplot(cureData2[cureData2$severity=="None",],aes(x=interval_r,y=cureRate,group=cohort_id,color=first_author))+
   geom_point()+geom_line()+xlim(0,10)+ylim(0,1)+
-  labs(title="Studies without severity reported",x="Year since diagnosis",y="Probability of Natural Recovery")
+  labs(title="Studies without severity reported",x="Year since diagnosis",y="Probability of Natural Recovery",color="Author")
 ```
 
 Second a plot of data with severity. One complexity is that severity is reported uniquely for one study of sanitoria patients from the Netherlands. Here individuals were called "positive" if they were positive for TB by microscopy upon entrance to the sanitorium, "negative" individuals were not, but presumably diagnosed clinically.

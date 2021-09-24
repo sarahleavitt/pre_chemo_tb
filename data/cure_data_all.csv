@@ -1,20 +1,20 @@
 "study_id","paper_id","cohort_id","severity","start_type","sanatorium","interval_l","interval_r","n","c1a","c1b","c1a_plus_b","c2","c3","c2_plus_c3","l","cureRate"
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",0,4,2022,NA,NA,1094,475,NA,NA,NA,0.234915924826904
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",4,5,1949,NA,NA,1178,453,NA,NA,NA,0.23242688558235
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",5,6,1872,NA,NA,1240,387,NA,NA,NA,0.206730769230769
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",6,7,1804,NA,NA,1285,332,NA,NA,NA,0.184035476718404
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",7,8,1731,NA,NA,1314,277,NA,NA,NA,0.16002310803004
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",8,9,1658,NA,NA,1336,217,NA,NA,NA,0.130880579010856
-"75_1019","75_1019","75_1019","None","Notification/diagnosis","No",9,10,1627,NA,NA,1355,179,NA,NA,NA,0.110018438844499
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",0,1,670,NA,NA,32,369,NA,NA,NA,0.550746268656716
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",1,2,541,NA,NA,99,252,NA,NA,NA,0.465804066543438
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",2,3,477,NA,NA,130,198,NA,NA,NA,0.415094339622642
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",3,4,448,NA,NA,148,178,NA,NA,NA,0.397321428571429
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",4,5,397,NA,NA,160,143,NA,NA,NA,0.360201511335013
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",5,6,357,NA,NA,164,114,NA,NA,NA,0.319327731092437
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",6,7,311,NA,NA,174,79,NA,NA,NA,0.254019292604502
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",7,8,277,NA,NA,179,57,NA,NA,NA,0.205776173285199
-"75_1020","75_1020","75_1020","None","Notification/diagnosis","No",8,9,243,NA,NA,181,33,NA,NA,NA,0.135802469135802
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",0,4,2022,NA,NA,1094,475,NA,NA,NA,0.234915924826904
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",4,5,1949,NA,NA,1178,453,NA,NA,NA,0.23242688558235
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",5,6,1872,NA,NA,1240,387,NA,NA,NA,0.206730769230769
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",6,7,1804,NA,NA,1285,332,NA,NA,NA,0.184035476718404
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",7,8,1731,NA,NA,1314,277,NA,NA,NA,0.16002310803004
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",8,9,1658,NA,NA,1336,217,NA,NA,NA,0.130880579010856
+"75_1019","75_1019","75_1019_1","None","Notification/diagnosis","No",9,10,1627,NA,NA,1355,179,NA,NA,NA,0.110018438844499
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",0,1,670,NA,NA,32,369,NA,NA,NA,0.550746268656716
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",1,2,541,NA,NA,99,252,NA,NA,NA,0.465804066543438
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",2,3,477,NA,NA,130,198,NA,NA,NA,0.415094339622642
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",3,4,448,NA,NA,148,178,NA,NA,NA,0.397321428571429
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",4,5,397,NA,NA,160,143,NA,NA,NA,0.360201511335013
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",5,6,357,NA,NA,164,114,NA,NA,NA,0.319327731092437
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",6,7,311,NA,NA,174,79,NA,NA,NA,0.254019292604502
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",7,8,277,NA,NA,179,57,NA,NA,NA,0.205776173285199
+"75_1020","75_1020","75_1020_1","None","Notification/diagnosis","No",8,9,243,NA,NA,181,33,NA,NA,NA,0.135802469135802
 "79_1021","79_1021","79_1021_1","Positive","Exit","Yes",0,2,280,NA,NA,NA,101,NA,NA,NA,0.360714285714286
 "79_1021","79_1021","79_1021_1","Positive","Exit","Yes",0,4,280,NA,NA,NA,90,NA,NA,NA,0.321428571428571
 "79_1021","79_1021","79_1021_1","Positive","Exit","Yes",0,6,280,NA,NA,NA,87,NA,NA,NA,0.310714285714286
@@ -48,3 +48,76 @@
 "5_1047","5_1047","5_1047_1","None","Entry","Yes",0,0.823,899,19,1,NA,NA,NA,879,0,NA
 "5_1047","5_1047","5_1047_1","None","Exit","Yes",0.823,6.264,879,9,3,NA,761,53,NA,53,0.86575654152446
 "94","94","94_1","None","Entry","Yes",1,7,1953,591,26,NA,762,503,NA,71,0.390168970814132
+"12","12","12_1","None","Notification/diagnosis","No",0,1.5,126,NA,NA,38,35,53,NA,0,0.277777777777778
+"12","12","12_1","None","Notification/diagnosis","No",1.5,3,88,NA,NA,13,44,31,NA,0,0.5
+"12","12","12_1","None","Notification/diagnosis","No",3,5,75,NA,NA,11,41,23,NA,0,0.546666666666667
+"12","12","12_2","None","Notification/diagnosis","No",0,1.5,154,NA,NA,38,50,66,NA,0,0.324675324675325
+"12","12","12_3","None","Notification/diagnosis","No",0,1.5,136,NA,NA,23,53,60,NA,0,0.389705882352941
+"12","12","12_4","None","Notification/diagnosis","No",0,1.5,119,NA,NA,28,29,62,NA,0,0.243697478991597
+"12","12","12_5","None","Notification/diagnosis","No",0,1.5,70,NA,NA,9,33,21,NA,7,0.471428571428571
+"12","12","12_6","None","Notification/diagnosis","No",0,2,40,NA,NA,15,11,13,NA,1,0.275
+"65","65","65_1","None","Notification/diagnosis","No",0,4,571,NA,NA,310,147,106,NA,8,0.257443082311734
+"91","91","91_1","None","Entry","Yes",0,2.5275,362,NA,NA,115,92,143,NA,12,0.25414364640884
+"91","91","91_2","None","Entry","Yes",0,3.655,266,NA,NA,91,73,87,NA,15,0.274436090225564
+"91","91","91_3","None","Entry","Yes",0,4.4858333,232,NA,NA,94,72,56,NA,10,0.310344827586207
+"91","91","91_4","None","Entry","Yes",0,5.3108333,239,NA,NA,111,79,39,NA,10,0.330543933054393
+"91","91","91_5","None","Entry","Yes",0,6.8641667,214,NA,NA,105,57,46,NA,6,0.266355140186916
+"91","91","91_6","None","Entry","Yes",0,7.4425,158,NA,NA,91,44,16,NA,7,0.278481012658228
+"91","91","91_7","None","Entry","Yes",0,8.29,183,NA,NA,100,54,18,NA,11,0.295081967213115
+"91","91","91_8","None","Entry","Yes",0,9.1175,171,NA,NA,88,44,22,NA,17,0.257309941520468
+"91","91","91_9","None","Entry","Yes",0,10.184167,196,NA,NA,106,53,27,NA,10,0.270408163265306
+"91","91","91_10","None","Entry","Yes",0,10.9975,231,NA,NA,134,65,24,NA,8,0.281385281385281
+"91","91","91_11","None","Entry","Yes",0,11.879167,178,NA,NA,89,68,11,NA,10,0.382022471910112
+"91","91","91_12","None","Entry","Yes",0,12.913333,89,NA,NA,33,41,10,NA,5,0.460674157303371
+"79_1023","79_1023","79_1023_5","Minimal disease","Notification/diagnosis","No",0,4,4,0,0,NA,3,1,NA,0,0.75
+"79_1023","79_1023","79_1023_6","Moderately advanced disease","Notification/diagnosis","No",0,4,155,46,0,NA,63,46,NA,0,0.406451612903226
+"79_1023","79_1023","79_1023_7","Far advanced disease","Notification/diagnosis","No",0,4,587,354,0,NA,98,135,NA,0,0.166950596252129
+"45","45","45_1","Moderately advanced disease","Entry","Yes",0,1,1206,21,0,NA,0,1185,NA,0,0
+"45","45","45_1","Moderately advanced disease","Entry","Yes",1,2,1185,9,10,NA,419,726,NA,21,0.353586497890295
+"45","45","45_1","Moderately advanced disease","Entry","Yes",2,3,1145,17,2,NA,639,482,NA,5,0.558078602620087
+"45","45","45_1","Moderately advanced disease","Entry","Yes",3,4,1121,19,0,NA,746,347,NA,9,0.665477252453167
+"45","45","45_1","Moderately advanced disease","Entry","Yes",4,5,1093,8,0,NA,790,281,NA,14,0.722781335773102
+"45","45","45_1","Moderately advanced disease","Entry","Yes",5,6,1071,17,9,NA,813,231,NA,1,0.759103641456583
+"45","45","45_1","Moderately advanced disease","Entry","Yes",6,7,1044,18,0,NA,829,193,NA,4,0.794061302681992
+"45","45","45_1","Moderately advanced disease","Entry","Yes",7,8,1022,20,7,NA,844,151,NA,0,0.825831702544031
+"45","45","45_1","Moderately advanced disease","Entry","Yes",8,9,995,12,8,NA,851,121,NA,3,0.855276381909548
+"45","45","45_1","Moderately advanced disease","Entry","Yes",9,10,972,15,8,NA,842,98,NA,9,0.866255144032922
+"45","45","45_1","Moderately advanced disease","Entry","Yes",10,11,940,11,5,NA,836,85,NA,3,0.88936170212766
+"45","45","45_1","Moderately advanced disease","Entry","Yes",11,12,921,5,5,NA,833,77,NA,1,0.904451682953312
+"45","45","45_1","Moderately advanced disease","Entry","Yes",12,13,910,5,1,NA,825,71,NA,8,0.906593406593407
+"45","45","45_1","Moderately advanced disease","Entry","Yes",13,14,896,7,0,NA,815,68,NA,6,0.909598214285714
+"45","45","45_1","Moderately advanced disease","Entry","Yes",14,15,883,5,4,NA,803,68,NA,3,0.909399773499434
+"45","45","45_1","Moderately advanced disease","Entry","Yes",15,16,871,8,4,NA,791,64,NA,4,0.908151549942595
+"45","45","45_1","Moderately advanced disease","Entry","Yes",16,17,855,3,1,NA,788,51,NA,12,0.921637426900585
+"45","45","45_1","Moderately advanced disease","Entry","Yes",17,18,839,0,3,NA,776,48,NA,12,0.924910607866508
+"45","45","45_1","Moderately advanced disease","Entry","Yes",18,19,824,1,5,NA,767,48,NA,3,0.930825242718447
+"45","45","45_1","Moderately advanced disease","Entry","Yes",19,20,815,0,3,NA,762,47,NA,3,0.934969325153374
+"45","45","45_2","Far advanced disease","Entry","Yes",0,1,298,27,0,NA,0,271,NA,0,0
+"45","45","45_2","Far advanced disease","Entry","Yes",1,2,271,12,0,NA,29,230,NA,0,0.107011070110701
+"45","45","45_2","Far advanced disease","Entry","Yes",2,3,259,15,3,NA,73,167,NA,1,0.281853281853282
+"45","45","45_2","Far advanced disease","Entry","Yes",3,4,240,12,0,NA,103,125,NA,0,0.429166666666667
+"45","45","45_2","Far advanced disease","Entry","Yes",4,5,228,10,0,NA,125,90,NA,3,0.548245614035088
+"45","45","45_2","Far advanced disease","Entry","Yes",5,6,215,8,2,NA,132,73,NA,0,0.613953488372093
+"45","45","45_2","Far advanced disease","Entry","Yes",6,7,205,6,1,NA,129,69,NA,0,0.629268292682927
+"45","45","45_2","Far advanced disease","Entry","Yes",7,8,198,5,1,NA,131,61,NA,0,0.661616161616162
+"45","45","45_2","Far advanced disease","Entry","Yes",8,9,192,2,2,NA,133,54,NA,1,0.692708333333333
+"45","45","45_2","Far advanced disease","Entry","Yes",9,10,187,4,1,NA,136,46,NA,0,0.727272727272727
+"45","45","45_2","Far advanced disease","Entry","Yes",10,11,182,5,0,NA,139,38,NA,0,0.763736263736264
+"45","45","45_2","Far advanced disease","Entry","Yes",11,12,177,3,2,NA,143,29,NA,0,0.807909604519774
+"45","45","45_2","Far advanced disease","Entry","Yes",12,13,172,2,0,NA,147,23,NA,0,0.854651162790698
+"45","45","45_2","Far advanced disease","Entry","Yes",13,14,170,4,0,NA,145,20,NA,1,0.852941176470588
+"45","45","45_2","Far advanced disease","Entry","Yes",14,15,165,4,1,NA,147,13,NA,0,0.890909090909091
+"45","45","45_2","Far advanced disease","Entry","Yes",15,16,160,2,4,NA,145,9,NA,0,0.90625
+"45","45","45_2","Far advanced disease","Entry","Yes",16,17,154,1,4,NA,140,7,NA,2,0.909090909090909
+"45","45","45_2","Far advanced disease","Entry","Yes",17,18,147,1,3,NA,134,8,NA,1,0.91156462585034
+"45","45","45_2","Far advanced disease","Entry","Yes",18,19,142,1,1,NA,134,5,NA,1,0.943661971830986
+"45","45","45_2","Far advanced disease","Entry","Yes",19,20,139,1,1,NA,132,5,NA,0,0.949640287769784
+"67","67","67_1","Minimal disease","Entry","Yes",0,3,334,5,2,NA,268,59,NA,0,0.802395209580838
+"67","67","67_1","Minimal disease","Entry","Yes",3,5,326.694610778443,3.76347305389222,0,NA,245,28,NA,49.9311377245509,0.749935848088273
+"67","67","67_1","Minimal disease","Entry","Yes",5,10,272.302100516881,4.79159793247553,2,NA,138,17,NA,110.510502584406,0.506790067862311
+"67","67","67_2","Moderately advanced disease","Entry","Yes",0,3,458,37,6,NA,227,188,NA,0,0.495633187772926
+"67","67","67_2","Moderately advanced disease","Entry","Yes",3,5,414.46288209607,26.3122270742358,2,NA,237,112,NA,37.1506550218341,0.571824426837492
+"67","67","67_2","Moderately advanced disease","Entry","Yes",5,10,346.56793661497,42.2404753877276,4,NA,152,43,NA,105.327461227242,0.438586447103643
+"67","67","67_3","Far advanced disease","Entry","Yes",0,3,192,57,0,NA,47,88,NA,0,0.244791666666667
+"67","67","67_3","Far advanced disease","Entry","Yes",3,5,135,12.96875,1,NA,52,62,NA,7.03125,0.385185185185185
+"67","67","67_3","Far advanced disease","Entry","Yes",5,10,113.703703703704,31.8518518518518,1,NA,38,23,NA,19.8518518518519,0.334201954397394
