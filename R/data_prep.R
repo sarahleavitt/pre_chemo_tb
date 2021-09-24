@@ -119,7 +119,8 @@ write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FAL
 
 cureListAll <- list(dataList$`75_1019`,dataList$`75_1020`,dataList$`75_1021`,dataList$`79_1054`,
                     dataList$`5_1047`,dataList$`94`,dataList$`12`,dataList$`65`,dataList$`91`,
-                    dataList$`1029`,dataList$`79_1023_sev`,dataList$`45`,dataList$`67`)
+                    dataList$`1029_1055`,dataList$`1029_1056`,dataList$`48_1000_1029`,
+                    dataList$`79_1023_sev`,dataList$`45`,dataList$`67`)
 
 cureListAll2 <- lapply(cureListAll,dblTochr)
 
