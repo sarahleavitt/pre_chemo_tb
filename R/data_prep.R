@@ -29,7 +29,7 @@ pull_first_row <- function(paper){
   first_row <- paper %>%
     group_by(cohort_id) %>%
     arrange(interval_l) %>%
-    select(study_id, paper_id, cohort_id, n) %>%
+    select(study_id, paper_id, cohort_id, n, c1a, c2) %>%
     mutate(paper_id = as.character(paper_id),
            study_id = as.character(study_id)) %>%
     slice(1)
@@ -51,6 +51,17 @@ length(unique(cohorts$cohort_id))
 #Number of patients
 sum(cohorts$n)
 
+#Subset to TB mortality data
+mortality <- cohorts %>% filter(!is.na(c1a)) 
+length(unique(mortality$study_id))
+length(unique(mortality$cohort_id))
+
+#Subset to cure data
+cure <- cohorts %>%
+  filter(!is.na(c2) | study_id == "5_1047") %>%
+  bind_rows(select(dataList$`79_1023_sev`, study_id, paper_id, cohort_id, n, c1a, c2))
+length(unique(cure$study_id))
+length(unique(cure$cohort_id))
 
 
 
