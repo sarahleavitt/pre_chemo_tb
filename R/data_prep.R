@@ -21,13 +21,35 @@ dataList$`Data dictionary` <- NULL
 
 #### Overall counts -------------------------------------------------------------------------------
 
-#Number of papers = 21
+#Removing the severity data for 75_23 becasue it is the same people as the full study data in 75_1023
+countList <- dataList[!names(dataList) %in% c("79_1023_sev")]
+
+pull_first_row <- function(paper){
+  
+  first_row <- paper %>%
+    group_by(cohort_id) %>%
+    arrange(interval_l) %>%
+    select(study_id, paper_id, cohort_id, n) %>%
+    mutate(paper_id = as.character(paper_id),
+           study_id = as.character(study_id)) %>%
+    slice(1)
+  
+  return(first_row)
+}
+
+cohorts <- map_dfr(countList, pull_first_row)
+
+#Number of papers
+length(unique(cohorts$paper_id))
 
 #Number of studies
+length(unique(cohorts$study_id))
 
 #Number of cohorts
+length(unique(cohorts$cohort_id))
 
 #Number of patients
+sum(cohorts$n)
 
 
 
