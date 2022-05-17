@@ -75,7 +75,8 @@ par_cure <- c("alpha", "bmod", "bmin", "theta",
               "ORmod", "ORmin", "oddsAdv", "oddsMod", "oddsMin")
 
 
-#### Three year only analysis ----------------------------------------------------------------------
+
+#### Three year only analysis, all studies ---------------------------------------------------------
 
 ## Running the model
 cureData_3 <- cureData %>% filter(study_id != "79_1023")
@@ -119,33 +120,9 @@ autocorr.plot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
 
 
-## Table of results
-
-#Odds ratios for minimal and moderate vs. advanced
-or_3 <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%
-  mutate(rownames = row.names(.),
-         severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
-         OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
-  select(severity, OR_CI)
-
-#Table of counts per study
-cureTab_3 <- cureAggregate_3 %>%
-  mutate(study_id = as.character(study_id)) %>%
-  left_join(studyid, by = "study_id") %>%
-  mutate(pMin = 100 * round(cMin / nMin, 2),
-         pMod = 100 * round(cMod / nMod, 2),
-         pAdv = 100 * round(cAdv / nAdv, 2),
-         Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
-         Mod_cure = paste0(cMod, " (", pMod, "%)"),
-         Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
-  select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
-         Adv_total = nAdv, Adv_cure) %>%
-  arrange(first_author)
 
 
-
-
-#### Three and four year analysis ------------------------------------------------------------------
+#### Three and four year analysis, all studies -----------------------------------------------------
 
 ## Running the model
 
@@ -188,7 +165,116 @@ autocorr.plot(eval_4[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
 
 
-## Table of results
+
+#### Three year only analysis, all studies ---------------------------------------------------------
+
+## Running the model
+cureData_3sub <- cureData %>% filter(study_id %in% c("1029", "45"))
+
+cureAggregate_3sub <- cureData_3sub %>%
+  group_by(study_id) %>%
+  summarize(nMin = sum(severity == "Minimal"),
+            nMod = sum(severity == "Moderate"),
+            nAdv = sum(severity == "Advanced"),
+            cMin = sum(severity == "Minimal" & cure == 1),
+            cMod = sum(severity == "Moderate" & cure == 1),
+            cAdv = sum(severity == "Advanced" & cure == 1),
+            .groups = "drop")
+
+#Data
+dt_3sub <- list(nStudy = length(unique(cureData_3sub$study_id)),
+             nMin = cureAggregate_3sub$nMin,
+             nMod = cureAggregate_3sub$nMod,
+             nAdv = cureAggregate_3sub$nAdv,
+             cMin = cureAggregate_3sub$cMin,
+             cMod = cureAggregate_3sub$cMod,
+             cAdv = cureAggregate_3sub$cAdv
+)
+
+#Fitting the model
+fit_3sub <- jags(data = dt_3sub, model.file = m_cure,
+              parameters.to.save = par_cure,
+              n.iter = 11000, n.burnin = 1000,
+              n.chains = 1, n.thin = 20)
+
+#Extracting data
+mcmc_3sub <- as.mcmc(fit_3sub)
+eval_3sub <- mcmc_3sub
+summary(eval_3sub)$quantiles
+
+png("Figures/xyplot_cure_3subyear.png")
+xyplot(eval_3sub[, c("alpha", "bmod", "bmin", "theta")])
+dev.off()
+png("Figures/autocorr_cure_3subyear.png")
+autocorr.plot(eval_3sub[, c("alpha", "bmod", "bmin", "theta")])
+dev.off()
+
+
+
+
+
+#### Tables of results -----------------------------------------------------------------------------
+
+make_cure_tab <- function(eval_tab, aggregate_tab){
+  
+  #Odds ratios for minimal and moderate vs. advanced
+  or <- as.data.frame(summary(eval_tab[, c("ORmin", "ORmod")])$quantiles) %>%
+    mutate(rownames = row.names(.),
+           severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
+           OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
+    select(severity, OR_CI)
+  
+  #Table of counts per study
+  cureTab <- aggregate_tab %>%
+    mutate(study_id = as.character(study_id)) %>%
+    left_join(studyid, by = "study_id") %>%
+    mutate(pMin = 100 * round(cMin / nMin, 2),
+           pMod = 100 * round(cMod / nMod, 2),
+           pAdv = 100 * round(cAdv / nAdv, 2),
+           Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
+           Mod_cure = paste0(cMod, " (", pMod, "%)"),
+           Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
+    select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
+           Adv_total = nAdv, Adv_cure) %>%
+    arrange(first_author)
+  
+  return(list(or, cureTab))
+}
+
+
+#### Three year, all studies
+
+tabs_3 <- make_cure_tab(eval_3, cureAggregate_3)
+or_3 <- tabs_3[[1]]
+cureTab_3 <- tabs_3[[2]]
+
+#Odds ratios for minimal and moderate vs. advanced
+or_3 <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%
+  mutate(rownames = row.names(.),
+         severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
+         OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
+  select(severity, OR_CI)
+
+#Table of counts per study
+cureTab_3 <- cureAggregate_3 %>%
+  mutate(study_id = as.character(study_id)) %>%
+  left_join(studyid, by = "study_id") %>%
+  mutate(pMin = 100 * round(cMin / nMin, 2),
+         pMod = 100 * round(cMod / nMod, 2),
+         pAdv = 100 * round(cAdv / nAdv, 2),
+         Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
+         Mod_cure = paste0(cMod, " (", pMod, "%)"),
+         Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
+  select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
+         Adv_total = nAdv, Adv_cure) %>%
+  arrange(first_author)
+
+
+#### Three and four year, all studies
+
+tabs_4 <- make_cure_tab(eval_4, cureAggregate_4)
+or_4 <- tabs_4[[1]]
+cureTab_4 <- tabs_4[[2]]
 
 #Odds ratios for minimal and moderate vs. advanced
 or_4 <- as.data.frame(summary(eval_4[, c("ORmin", "ORmod")])$quantiles) %>%
@@ -211,5 +297,11 @@ cureTab_4 <- cureAggregate_4 %>%
          Adv_total = nAdv, Adv_cure) %>%
   arrange(first_author)
 
+
+### Three year only, US post-1930s
+
+tabs_3sub <- make_cure_tab(eval_3sub, cureAggregate_3sub)
+or_3sub <- tabs_3sub[[1]]
+cureTab_3sub <- tabs_3sub[[2]]
 
 

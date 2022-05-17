@@ -438,7 +438,7 @@ data_sev_tb <- getData(mortalityData_sev_tb)
 data_san_tb <- getData(san_tb)
 data_nosan_tb <- getData(nosan_tb)
 data_all_sub  <- getData(mortalityData_sub)
-data_sev_tb <- getData(mortalityData_sev_sub)
+data_sev_sub <- getData(mortalityData_sev_sub)
 
 
 save(res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb, res_all_sub, res_sev_sub,
