@@ -318,6 +318,100 @@ dev.off()
 
 
 
+#### US post-1930 Studies----------------------------------------------------------------
+
+
+#### US post-1930 TB mortality: Complete Model ####
+
+#Removing severity stratified but only four-year mortality data for study 79_1023
+mortalityData_sub <- mortalityData %>%
+  filter(study_id %in% c("1029", "93", "45")) %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)),
+         study_id_num = as.numeric(factor(study_id)))
+
+
+#Data
+dt_all_sub <- list(N = nrow(mortalityData_sub),
+                  interval = mortalityData_sub$interval,
+                  lim = cbind(mortalityData_sub$x1, mortalityData_sub$x2),
+                  time = rep(NA, nrow(mortalityData_sub)),
+                  n_frail = length(unique(mortalityData_sub$study_sev_num)),
+                  frail = mortalityData_sub$study_sev_num
+)
+
+#Fitting the model
+fit_all_sub <- jags(data = dt_all_sub, model.file = m_all,
+                   parameters.to.save = par_all,
+                   n.iter = 11000, n.burnin = 1000,
+                   n.chains = 1, n.thin = 20)
+
+#Extracting results
+mcmc_all_sub <- as.mcmc(fit_all_sub)
+eval_all_sub <- mcmc_all_sub[, c("mu", "theta", "sdlog")]
+res_all_sub <- as.data.frame(summary(mcmc_all_sub)$quantiles)
+
+png("Figures/xyplot_all_sub.png")
+xyplot(eval_all_sub)
+dev.off()
+png("Figures/autocorr_all_sub.png")
+autocorr.plot(eval_all_sub)
+dev.off()
+
+
+
+#### TB mortality: stratified model ####
+
+#Subsetting and formatting data
+mortalityData_sev_sub <- mortalityData %>%
+  filter(study_id %in% c("1029", "93", "45")) %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)),
+         study_id_num = as.numeric(factor(study_id)),
+         sev_mod = as.numeric(severity == "Moderate"),
+         sev_adv = as.numeric(severity == "Advanced"),
+         sev_unk = as.numeric(severity == "Unknown"))
+
+cohort_data_sub <- mortalityData_sev_sub %>%
+  group_by(study_sev_num) %>%
+  summarize(study_id_num = first(study_id_num),
+            sev_mod = first(sev_mod),
+            sev_adv = first(sev_adv),
+            sev_unk = first(sev_unk))
+
+#Data
+dt_sev_sub <- list(N = nrow(mortalityData_sev_sub),
+                  interval = mortalityData_sev_sub$interval,
+                  lim = cbind(mortalityData_sev_sub$x1, mortalityData_sev_sub$x2),
+                  time = rep(NA, nrow(mortalityData_sev_sub)),
+                  n_frail = length(unique(mortalityData_sev_sub$study_id_num)),
+                  frail = mortalityData_sev_sub$study_id_num,
+                  sev_mod = mortalityData_sev_sub$sev_mod,
+                  sev_adv = mortalityData_sev_sub$sev_adv,
+                  n_study_sev = nrow(cohort_data_sub),
+                  frail2 = cohort_data_sub$study_id_num,
+                  study_sev_mod = cohort_data_sub$sev_mod,
+                  study_sev_adv = cohort_data_sub$sev_adv
+)
+
+#Fitting model
+fit_sev_sub <- jags(data = dt_sev_sub, model.file = m_sev,
+                   parameters.to.save = par_sev,
+                   n.iter = 11000, n.burnin = 1000,
+                   n.chains = 1, n.thin = 20)
+
+#Extracting results
+mcmc_sev_sub <- as.mcmc(fit_sev_sub)
+eval_sev_sub <- mcmc_sev_sub[, c("alpha", "bmod", "badv", "theta", "sdlog")]
+res_sev_sub <- as.data.frame(summary(mcmc_sev_sub)$quantiles)
+
+png("Figures/xyplot_sev_sub.png")
+xyplot(eval_sev_sub)
+dev.off()
+png("Figures/autocorr_sev_sub.png")
+autocorr.plot(eval_sev_sub)
+dev.off()
+
+
+
 
 #### Compiling Results------------------------------------------------------------------------------
 
@@ -343,9 +437,11 @@ data_all_tb <- getData(mortalityData_tb)
 data_sev_tb <- getData(mortalityData_sev_tb)
 data_san_tb <- getData(san_tb)
 data_nosan_tb <- getData(nosan_tb)
+data_all_sub  <- getData(mortalityData_sub)
+data_sev_tb <- getData(mortalityData_sev_sub)
 
 
-save(res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb,
-     data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb,
+save(res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb, res_all_sub, res_sev_sub,
+     data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb, data_all_sub, data_sev_sub,
      file = "R/bayesian_mortality.RData")
 

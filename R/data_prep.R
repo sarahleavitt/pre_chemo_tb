@@ -70,7 +70,8 @@ length(unique(cure$cohort_id))
 
 #### Mortality Data -------------------------------------------------------------------------------
 
-mortalityList <- dataList[!names(dataList) %in% c("75_1019", "75_1020", "75_1021", "79_1054")]
+mortalityList <- dataList[!names(dataList) %in% c("12", "65", "91", "75_1019", "75_1020", "75_1021",
+                                                  "75_1019", "75_1019", "75_1021", "79_1054")]
 
 #Converting the study data to individual mortality data
 indAll <- map_dfr(mortalityList, studyToInd, outcome = "mortality")
