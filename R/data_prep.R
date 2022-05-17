@@ -18,6 +18,9 @@ reload_source()
 dataList <- read_excel_allsheets("data/pre_chemo_data.xlsx")
 dataList$`Data dictionary` <- NULL
 
+## Reading in study information
+studyid <- read.csv("data/study_id.csv")
+
 
 #### Overall counts -------------------------------------------------------------------------------
 
@@ -94,14 +97,10 @@ mortalityData <- indAll %>%
                                          "Unknown"))),
          severity = factor(severity, levels = c("Minimal", "Moderate", "Advanced", "Unknown"))) %>%
   unite(study_sev, study_id, severity, remove = FALSE) %>%
+  left_join(studyid, by = "study_id") %>%
   arrange(study_sev)
 
 write.csv(mortalityData, "data/mortality_data.csv", row.names = FALSE)
-
-start <- mortalityData %>%
-  group_by(paper_id) %>%
-  slice(1) %>%
-  filter(sanatorium == "Yes")
 
 
 
@@ -117,15 +116,14 @@ cureData1 <- map_dfr(cureList, studyToInd, outcome = "cure", timepoints = 3)
 cureData2 <- studyToInd(dataList$`79_1023_sev`, outcome = "cure", timepoints = 4)
 
 #Combining Info
-cureData <- bind_rows(cureData1, cureData2)
+cureData <- bind_rows(cureData1, cureData2) %>%
+  left_join(studyid, by = "study_id")
 
 write.csv(cureData, "data/cure_data.csv", row.names = FALSE)
 
 
 
 #### Table of Study Info
-
-studyid <- read.csv("data/study_id.csv")
 
 mortalityStudies <- mortalityData %>%
   group_by(study_id) %>%
