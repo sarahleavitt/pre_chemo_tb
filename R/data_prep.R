@@ -21,7 +21,7 @@ dataList$`Data dictionary` <- NULL
 
 #### Overall counts -------------------------------------------------------------------------------
 
-#Removing the severity data for 75_23 becasue it is the same people as the full study data in 75_1023
+#Removing the severity data for 75_23 because it is the same people as the full study data in 75_1023
 countList <- dataList[!names(dataList) %in% c("79_1023_sev")]
 
 pull_first_row <- function(paper){
@@ -98,6 +98,11 @@ mortalityData <- indAll %>%
 
 write.csv(mortalityData, "data/mortality_data.csv", row.names = FALSE)
 
+start <- mortalityData %>%
+  group_by(paper_id) %>%
+  slice(1) %>%
+  filter(sanatorium == "Yes")
+
 
 
 #### Cure Data with severity ----------------------------------------------------------------------
@@ -111,7 +116,40 @@ cureData1 <- map_dfr(cureList, studyToInd, outcome = "cure", timepoints = 3)
 ## Extracting four year survival from 79_1023
 cureData2 <- studyToInd(dataList$`79_1023_sev`, outcome = "cure", timepoints = 4)
 
-write.csv(bind_rows(cureData1, cureData2), "data/cure_data.csv", row.names = FALSE)
+#Combining Info
+cureData <- bind_rows(cureData1, cureData2)
+
+write.csv(cureData, "data/cure_data.csv", row.names = FALSE)
+
+
+
+#### Table of Study Info
+
+studyid <- read.csv("data/study_id.csv")
+
+mortalityStudies <- mortalityData %>%
+  group_by(study_id) %>%
+  slice(1) %>%
+  mutate(stratified = ifelse(severity == "Unknown", "No", "Yes"),
+         mortality = "Yes") %>%
+  select(study_id, stratified, sanatorium, start_type, mortality)
+
+cureStudies <- cureData %>%
+  group_by(study_id) %>%
+  slice(1) %>%
+  mutate(cure = "Yes") %>%
+  select(study_id, sanatorium, start_type, cure_time = time, cure)
+
+allStudies <- mortalityStudies %>%
+  full_join(cureStudies, by = c("study_id", "sanatorium", "start_type")) %>%
+  left_join(studyid, by = "study_id") %>%
+  mutate(outcome = ifelse(mortality == "Yes" & !is.na(cure), "Mortality/Cure", "Mortality")) %>%
+  arrange(first_author) %>%
+  select(study_id, first_author, year, category, outcome, stratified, sanatorium, start_type, cure_time)
+
+write.csv(allStudies, "data/analysis_studies.csv", row.names = FALSE)
+  
+
 
 
 
