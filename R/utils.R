@@ -366,12 +366,13 @@ formatBayesian <- function(mortalityData, res, data, label, fixed = FALSE){
   
   #Creating table of covariate data
   covar <- mortalityData %>%
-    full_join(studyid, by = "study_id") %>%
+    #full_join(studyid, by = "study_id") %>%
     group_by(study_sev) %>%
     summarize(first_author = first(first_author),
               sanatorium = first(sanatorium),
               severity = first(severity),
               start_type = first(start_type),
+              category = first(category),
               .groups = "drop")
   
   #Study-level raw results

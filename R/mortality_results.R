@@ -25,6 +25,8 @@ form_all_tb <- formatBayesian(mortalityData, res_all_tb, data_all_tb, "Combined"
 form_sev_tb <- formatBayesian(mortalityData, res_sev_tb, data_sev_tb, "Severity", fixed = TRUE)
 form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "Sanatorium/hospital")
 form_nosan_tb <- formatBayesian(mortalityData, res_nosan_tb, data_nosan_tb, "Non-Sanatorium")
+form_all_sub <- formatBayesian(mortalityData, res_all_sub, data_all_sub, "Combined_Sub")
+form_sev_sub <- formatBayesian(mortalityData, res_sev_sub, data_sev_sub, "Severity_Sub", fixed = TRUE)
 
 
 #### Main text survival curves --------------------------------------------------------------------
@@ -162,17 +164,18 @@ s1s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
 
 #Combining raw tables from results lists
 raw_tab <- bind_rows(form_all_tb$param, form_sev_tb$param,
-                     form_san_tb$param, form_nosan_tb$param)
+                     form_san_tb$param, form_nosan_tb$param,
+                     form_all_sub$param, form_sev_sub$param)
 
 #Adding formatted, ordered labels
 raw_tab <- raw_tab %>%
-  mutate(Severity = ifelse(is.na(severity) & grepl("Combined", label), "Combined",
-                           ifelse(grepl("Non-", label), "Non-Sanatorium",
-                                  ifelse(grepl("San", label), "Sanatorium", severity))),
+  mutate(Severity = ifelse(label == "Severity", severity,
+                           ifelse(label == "Severity_Sub", paste0(severity, "_Sub"),
+                                  label)),
          Severity = factor(Severity, level = c("Minimal", "Moderate", "Advanced", "Combined",
-                                               "Sanatorium", "Non-Sanatorium")),
-         Outcome = gsub(": [A-z]*-*[A-z]*", "", label)) %>%
-  arrange(Outcome, Severity)
+                                               "Minimal_Sub", "Moderate_Sub", "Advanced_Sub",
+                                               "Combined_Sub", "Sanatorium/hospital", "Non-Sanatorium"))) %>%
+  arrange(Severity)
 
 #Extracting the survival probabilities
 pred1_tab <- raw_tab %>%
@@ -214,12 +217,14 @@ dist_tab <- raw_tab %>%
 data_all_tb2 <- as.data.frame(t(data_all_tb[[2]]))
 data_san_tb2 <- as.data.frame(t(data_san_tb[[2]]))
 data_nosan_tb2 <- as.data.frame(t(data_nosan_tb[[2]]))
+data_all_sub2 <- as.data.frame(t(data_all_sub[[2]]))
 data_all_tb2$Severity <- "Combined"
-data_san_tb2$Severity <- "Sanatorium"
+data_san_tb2$Severity <- "Sanatorium/hospital"
 data_nosan_tb2$Severity <- "Non-Sanatorium"
-counts_tb <- bind_rows(data_all_tb2, data_san_tb2, data_nosan_tb2)
+data_all_sub2$Severity <- "Combined_Sub"
+counts_tb <- bind_rows(data_all_tb2, data_san_tb2, data_nosan_tb2, data_all_sub2)
 
-#Counts stratified by severity
+#Counts stratified by severity for all studies
 mortalityData_sev <- mortalityData %>% filter(severity != "Unknown")
 counts_sev <- mortalityData_sev %>%
   group_by(severity) %>%
@@ -229,10 +234,23 @@ counts_sev <- mortalityData_sev %>%
             .groups = "drop") %>%
   rename(Severity = severity)
 
-counts_initial <- bind_rows(counts_tb, counts_sev) %>%
+#Counts stratified by severity for US post-1930s subset
+mortalityData_sub <- mortalityData %>% filter(severity != "Unknown",
+                                              study_id %in% c("1029", "93", "45"))
+counts_sub <- mortalityData_sub %>%
+  group_by(severity) %>%
+  summarize(nStudies = length(unique(study_id)),
+            nCohorts = length(unique(cohort_id)),
+            nIndividuals = n(),
+            .groups = "drop") %>%
+  mutate(Severity = paste0(severity, "_Sub"))
+
+
+counts_initial <- bind_rows(counts_tb, counts_sev, counts_sub) %>%
   select(Severity, `Number of Studies` = nStudies,
          `Number of Cohorts` = nCohorts,
          `Number of Individuals` = nIndividuals)
+
   
 
 #Combining the tables
@@ -242,8 +260,9 @@ final_tab <- dist_tab %>%
   full_join(pred10_tab, by = c("Severity")) %>%
   full_join(counts_initial, by = c("Severity"))
 
-#Separating sanatorium
-main_tab <- final_tab %>% filter(!grepl("San", Severity))
+#Separating three tables for paper
+main_tab <- final_tab %>% filter(!grepl("San|Sub", Severity))
+sub_tab <- final_tab %>% filter(grepl("Sub", Severity))
 san_tab <- final_tab %>% filter(grepl("San", Severity))
 
 #Variance of frailty terms
