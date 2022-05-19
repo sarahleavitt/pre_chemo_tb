@@ -242,64 +242,17 @@ make_cure_tab <- function(eval_tab, aggregate_tab){
 }
 
 
-#### Three year, all studies
-
+## Three year, all studies
 tabs_3 <- make_cure_tab(eval_3, cureAggregate_3)
 or_3 <- tabs_3[[1]]
 cureTab_3 <- tabs_3[[2]]
 
-#Odds ratios for minimal and moderate vs. advanced
-or_3 <- as.data.frame(summary(eval_3[, c("ORmin", "ORmod")])$quantiles) %>%
-  mutate(rownames = row.names(.),
-         severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
-         OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
-  select(severity, OR_CI)
-
-#Table of counts per study
-cureTab_3 <- cureAggregate_3 %>%
-  mutate(study_id = as.character(study_id)) %>%
-  left_join(studyid, by = "study_id") %>%
-  mutate(pMin = 100 * round(cMin / nMin, 2),
-         pMod = 100 * round(cMod / nMod, 2),
-         pAdv = 100 * round(cAdv / nAdv, 2),
-         Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
-         Mod_cure = paste0(cMod, " (", pMod, "%)"),
-         Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
-  select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
-         Adv_total = nAdv, Adv_cure) %>%
-  arrange(first_author)
-
-
-#### Three and four year, all studies
-
+## Three and four year, all studies
 tabs_4 <- make_cure_tab(eval_4, cureAggregate_4)
 or_4 <- tabs_4[[1]]
 cureTab_4 <- tabs_4[[2]]
 
-#Odds ratios for minimal and moderate vs. advanced
-or_4 <- as.data.frame(summary(eval_4[, c("ORmin", "ORmod")])$quantiles) %>%
-  mutate(rownames = row.names(.),
-         severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
-         OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
-  select(severity, OR_CI)
-
-#Table of counts per study
-cureTab_4 <- cureAggregate_4 %>%
-  mutate(study_id = as.character(study_id)) %>%
-  left_join(studyid, by = "study_id") %>%
-  mutate(pMin = 100 * round(cMin / nMin, 2),
-         pMod = 100 * round(cMod / nMod, 2),
-         pAdv = 100 * round(cAdv / nAdv, 2),
-         Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
-         Mod_cure = paste0(cMod, " (", pMod, "%)"),
-         Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
-  select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
-         Adv_total = nAdv, Adv_cure) %>%
-  arrange(first_author)
-
-
-### Three year only, US post-1930s
-
+## Three year only, US post-1930s
 tabs_3sub <- make_cure_tab(eval_3sub, cureAggregate_3sub)
 or_3sub <- tabs_3sub[[1]]
 cureTab_3sub <- tabs_3sub[[2]]
