@@ -215,33 +215,6 @@ dev.off()
 
 #### Tables of results -----------------------------------------------------------------------------
 
-make_cure_tab <- function(eval_tab, aggregate_tab){
-  
-  #Odds ratios for minimal and moderate vs. advanced
-  or <- as.data.frame(summary(eval_tab[, c("ORmin", "ORmod")])$quantiles) %>%
-    mutate(rownames = row.names(.),
-           severity = ifelse(grepl("min", rownames), "Minimal", "Moderate"),
-           OR_CI = paste0(round(`50%`, 2), " (", round(`2.5%`, 2), ", ", round(`97.5%`, 2), ")")) %>%
-    select(severity, OR_CI)
-  
-  #Table of counts per study
-  cureTab <- aggregate_tab %>%
-    mutate(study_id = as.character(study_id)) %>%
-    left_join(studyid, by = "study_id") %>%
-    mutate(pMin = 100 * round(cMin / nMin, 2),
-           pMod = 100 * round(cMod / nMod, 2),
-           pAdv = 100 * round(cAdv / nAdv, 2),
-           Min_cure = ifelse(nMin == 0, "-", paste0(cMin, " (", pMin, "%)")),
-           Mod_cure = paste0(cMod, " (", pMod, "%)"),
-           Adv_cure = paste0(cAdv, " (", pAdv, "%)")) %>%
-    select(first_author, Min_total = nMin, Min_cure, Mod_total = nMod, Mod_cure,
-           Adv_total = nAdv, Adv_cure) %>%
-    arrange(first_author)
-  
-  return(list(or, cureTab))
-}
-
-
 ## Three year, all studies
 tabs_3 <- make_cure_tab(eval_3, cureAggregate_3)
 or_3 <- tabs_3[[1]]

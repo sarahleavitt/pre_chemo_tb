@@ -29,7 +29,7 @@ form_all_sub <- formatBayesian(mortalityData, res_all_sub, data_all_sub, "Combin
 form_sev_sub <- formatBayesian(mortalityData, res_sev_sub, data_sev_sub, "Severity_Sub", fixed = TRUE)
 
 
-#### Main text survival curves --------------------------------------------------------------------
+#### All studies summary survival curves -----------------------------------------------------------
 
 #TB survival for full model
 p1 <- ggplot(form_all_tb$surv_dens) +
@@ -65,7 +65,7 @@ ggsave("Figures/survival_curves.png",
 
 
 
-#### Supplement survival curves -------------------------------------------------------------------
+#### All studies individual survival curves --------------------------------------------------------
 
 #TB survival for full model
 s1 <- ggplot(form_all_tb$ind_surv) +
@@ -103,36 +103,154 @@ ggsave("Figures/survival_curves_supp.png",
 
 
 
-##### Forest plots --------------------------------------------------------------------------------
+#### US post-1930s summary survival curves ---------------------------------------------------------
 
 #TB survival for full model
-f1 <- ggplot(form_all_tb$pred_comb %>% filter(value != "median"),
-             aes(x = est, y = first_author, xmin = cilb, xmax = ciub, shape = shape)) +
-  geom_point(color = "black") +
-  geom_point(data = form_all_tb$pred_comb %>% filter(shape == "Overall" & value != "median"),
+p1_sub <- ggplot(form_all_sub$surv_dens) +
+  geom_line(aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
+              stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw()
+
+
+#TB survival for fixed effect model
+p2_sub <- ggplot(form_sev_sub$surv_dens) +
+  geom_line(aes(x = x, y = surv, color = severity),
+            size = 1, linetype = "solid") +
+  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
+              stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  scale_color_manual("", values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                    "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
+  scale_fill_manual("",
+                    values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                               "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+
+grid.arrange(p1_sub, p2_sub, nrow = 2)
+ggsave("Figures/survival_curves_subset.png",
+       arrangeGrob(p1_sub, p2_sub, nrow = 2),
+       width = 5.5, height = 8)
+
+
+
+#### US post-1930s individual survival curves ------------------------------------------------------
+
+#TB survival for full model
+s1_sub <- ggplot(form_all_sub$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_all_tb$surv_dens, aes(x = x, y = surv),
+            color = "black", size = 1, linetype = "longdash") +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  scale_color_manual("Disease Severity",
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+
+#TB survival for stratified model
+s2_sub <- ggplot(form_sev_sub$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_sev_sub$surv_dens,
+            aes(x = x, y = surv, color = severity),
+            linetype = "longdash", size = 1) +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  scale_color_manual("", drop = TRUE,
+                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+
+grid.arrange(s1_sub, s2_sub, nrow = 2)
+ggsave("Figures/survival_curves_supp_subset.png",
+       arrangeGrob(s1_sub, s2_sub, nrow = 2),
+       width = 5.5, height = 8)
+
+
+#### All studies survival curves by category -------------------------------------------------------
+
+ggplot(form_sev_tb$ind_surv) +
+  geom_line(aes(x = x, y = surv, group = study_sev, color = category),
+            size = 0.7, alpha = 0.3) +
+  geom_line(data = form_sev_tb$surv_dens,
+            aes(x = x, y = surv, group = severity),
+            linetype = "longdash", size = 1, color = "grey50") +
+  facet_wrap(~severity) +
+  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+  scale_x_continuous(name = "Years", limits = c(0, 30)) +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  scale_color_manual("Type of Study",
+                     values = c("Non-US" = "mediumturquoise", "US post-1930" = "mediumvioletred",
+                                "US pre-1930" = "royalblue3")) +
+  ggsave("Figures/survival_curves_category.png", width = 8, height = 4.5)
+
+
+
+##### Forest plots --------------------------------------------------------------------------------
+
+pred_plot_all <- form_all_tb$pred_comb %>%
+  mutate(category = ifelse(is.na(category), "Overall", category),
+         category = factor(category, levels = c("US post-1930", "US pre-1930",
+                                                "Non-US", "Overall"))) %>%
+  arrange(desc(category), desc(first_author)) %>%
+  mutate(first_author = factor(first_author, levels=unique(first_author)))
+
+pred_plot_sev <- form_sev_tb$pred_comb %>%
+  mutate(category = ifelse(is.na(category), "Overall", category),
+         category = factor(category, levels = c("US post-1930", "US pre-1930", 
+                                                "Non-US", "Overall"))) %>%
+  arrange(desc(category), desc(first_author)) %>%
+  mutate(first_author = factor(first_author, levels=unique(first_author)))
+
+
+#TB survival for full model
+ggplot(pred_plot_all %>% filter(value != "median"),
+             aes(x = est, y = first_author, xmin = cilb, xmax = ciub,
+                 shape = shape, color = category)) +
+  facet_grid(severity ~ pred_label, scales = "free", space = "free") +
+  geom_point(aes(color = category)) +
+  geom_point(data = pred_plot_all %>% filter(shape == "Overall" & value != "median"),
              color = 'black', shape = 18, size = 3) +
   geom_errorbar(width = 0.5) +
   scale_x_continuous(name = "1-Year Survival Probability", limits = c(0, 1),
                      breaks = c(0, 0.5, 1)) +
-  facet_grid(severity ~ pred_label, scales = "free", space = "free") +
   theme_bw() +
-  theme(legend.position = "none",
-        axis.title.y = element_blank()) +
+  theme(axis.title.y = element_blank(),
+        legend.position = "bottom") +
+  scale_color_manual("Type of Study",
+                     values = c("Non-US" = "mediumturquoise", "US post-1930" = "mediumvioletred",
+                                "US pre-1930" = "royalblue3", "Overall" = "black")) +
+  scale_shape_discrete(guide = "none") +
   ggsave("Figures/forest_full.png", width = 7, height = 6)
 
 #TB survival for stratified model
-f2 <- ggplot(form_sev_tb$pred_comb %>% filter(value != "median"),
-              aes(x = est, y = first_author, xmin = cilb, xmax = ciub, shape = shape)) +
-  geom_point(color = "black") +
-  geom_point(data = form_sev_tb$pred_comb %>% filter(shape == "Overall" & value != "median"),
+ggplot(pred_plot_sev %>% filter(value != "median"),
+              aes(x = est, y = first_author, xmin = cilb, xmax = ciub, shape = shape,
+                  color = category)) +
+  geom_point(aes(color = category)) +
+  geom_point(data = pred_plot_sev %>% filter(shape == "Overall" & value != "median"),
              color = 'black', shape = 18, size = 3) +
   geom_errorbar(width = 0.5) +
   scale_x_continuous(name = "1-Year Survival Probability", limits = c(0, 1),
                      breaks = c(0, 0.5, 1)) +
   facet_grid(severity ~ pred_label, scales = "free", space = "free") +
   theme_bw() +
-  theme(legend.position = "none",
-        axis.title.y = element_blank()) +
+  theme(axis.title.y = element_blank(),
+        legend.position = "bottom") +
+  scale_color_manual("Type of Study",
+                     values = c("Non-US" = "mediumturquoise", "US post-1930" = "mediumvioletred",
+                                "US pre-1930" = "royalblue3", "Overall" = "black")) +
+  scale_shape_discrete(guide = "none") +
   ggsave("Figures/forest_stratified.png", width = 7, height = 6)
 
 
@@ -174,7 +292,8 @@ raw_tab <- raw_tab %>%
                                   label)),
          Severity = factor(Severity, level = c("Minimal", "Moderate", "Advanced", "Combined",
                                                "Minimal_Sub", "Moderate_Sub", "Advanced_Sub",
-                                               "Combined_Sub", "Sanatorium/hospital", "Non-Sanatorium"))) %>%
+                                               "Combined_Sub", "Sanatorium/hospital",
+                                               "Non-Sanatorium"))) %>%
   arrange(Severity)
 
 #Extracting the survival probabilities
