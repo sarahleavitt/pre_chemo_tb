@@ -16,14 +16,25 @@ source("R/utils.R")
 reload_source()
 
 #Reading in individual mortality data
-mortalityData <- read.csv("data/mortality_data.csv")
+mortality <- read.csv("data/mortality_data.csv")
+
+#Creating interval variables
+#interval = 1 implies x1 < t <= x2
+#dinterval() isn't working as it should so make all obs have interval = 1
+#and set x2 to be 10000 (close enough to infinity) for right censored
+mortality <- mortality %>% 
+  mutate(time = ifelse(death_tb == 0, NA, interval_l),
+         interval = 1,
+         x1 = interval_l,
+         x2 = ifelse(death_tb == 0, 10000, interval_r))
 
 
-#### Models ----------------------------------------------------------------------------------------
+
+#### MCMC Model Functions --------------------------------------------------------------------------
 
 #### Complete model (no fixed effect for severity) ####
 
-m_all <- function(){
+m_comp <- function(){
   
   for(j in 1:n_frail){
     
@@ -53,7 +64,7 @@ m_all <- function(){
   
   #Prediction for confidence bands
   for(t in 1:30){
-    pred_all[t] <- 1 - plnorm(t, mu, taulog)
+    pred_comp[t] <- 1 - plnorm(t, mu, taulog)
   }
   
   ## Derived parameters ##
@@ -63,12 +74,12 @@ m_all <- function(){
   #sdlog of all survival densities (cohort-specific and overall)
   sdlog <- sqrt(1/taulog)
   #Overall median
-  med_all <- exp(mu)
+  med_comp <- exp(mu)
 }
 
 #Parameters to track
-par_all <- c("mu", "theta", "sdlog", "med_all", "meanlog", "med_ind",
-             "pred_all", "pred1", "pred5", "pred10")
+par_comp <- c("mu", "theta", "sdlog", "med_comp", "meanlog", "med_ind",
+             "pred_comp", "pred1", "pred5", "pred10")
 
 
 
@@ -136,62 +147,109 @@ par_sev <- c("theta", "sdlog", "alpha", "bmod", "badv",
 
 
 
-
-#### TB Mortality Analysis--------------------------------------------------------------------------
-
-#interval = 1 implies x1 < t <= x2
-#dinterval() isn't working as it should so make all obs have interval = 1
-#and set x2 to be 10000 (close enough to infinity) for right censored
-mortalityData <- mortalityData %>% 
-  mutate(time = ifelse(death_tb == 0, NA, interval_l),
-         interval = 1,
-         x1 = interval_l,
-         x2 = ifelse(death_tb == 0, 10000, interval_r))
+#### Functions to Run the Models -------------------------------------------------------------------
 
 
+#### Complete model (no fixed effect for severity) ####
 
-#### TB mortality: complete model ####
+run_comp <- function(df, n.iter = 11000, n.burnin = 1000, n.thin = 20){
+  
+  #Create MCMC dataset
+  dt <- list(N = nrow(df),
+             interval = df$interval,
+             lim = cbind(df$x1, df$x2),
+             time = rep(NA, nrow(df)),
+             n_frail = length(unique(df$study_sev_num)),
+             frail = df$study_sev_num
+  )
+  
+  #Fitting the model
+  fit <- jags(data = dt, model.file = m_comp,
+              parameters.to.save = par_comp,
+              n.iter = n.iter, n.burnin = n.burnin,
+              n.chains = 1, n.thin = n.thin)
+  
+  #Extracting results
+  mcmc <- as.mcmc(fit)
+  eval <- mcmc[, c("mu", "theta", "sdlog")]
+  res <- as.data.frame(summary(mcmc)$quantiles)
+  
+  return(list("res" = res, "eval" = eval))
+}
 
-#Removing severity stratified but only four-year mortality data for study 79_1023
-mortalityData_tb <- mortalityData %>%
+
+#### Stratified model (fixed effect for severity) ####
+
+run_sev <- function(df, n.iter = 11000, n.burnin = 1000, n.thin = 20){
+  
+  #Getting information for each cohort
+  cohort_data <- df %>%
+    group_by(study_sev_num) %>%
+    summarize(study_id_num = first(study_id_num),
+              sev_mod = first(sev_mod),
+              sev_adv = first(sev_adv),
+              sev_unk = first(sev_unk))
+  
+  #Creating MCMC dataset
+  dt <- list(N = nrow(df),
+             interval = df$interval,
+             lim = cbind(df$x1, df$x2),
+             time = rep(NA, nrow(df)),
+             n_frail = length(unique(df$study_id_num)),
+             frail = df$study_id_num,
+             sev_mod = df$sev_mod,
+             sev_adv = df$sev_adv,
+             n_study_sev = nrow(cohort_data),
+             frail2 = cohort_data$study_id_num,
+             study_sev_mod = cohort_data$sev_mod,
+             study_sev_adv = cohort_data$sev_adv
+  )
+  
+  #Fitting model
+  fit <- jags(data = dt, model.file = m_sev,
+              parameters.to.save = par_sev,
+              n.iter = n.iter, n.burnin = n.burnin,
+              n.chains = 1, n.thin = n.thin)
+  
+  #Extracting results
+  mcmc <- as.mcmc(fit)
+  eval <- mcmc[, c("alpha", "bmod", "badv", "theta", "sdlog")]
+  res <- as.data.frame(summary(mcmc)$quantiles)
+  
+  return(list("res" = res, "eval" = eval))
+}
+
+
+
+#### All Studies -----------------------------------------------------------------------------------
+
+
+#### All Studies: Complete Model ####
+
+#Subsetting and formatting data
+mortality_comp_all <- mortality %>%
+  #Removing severity stratified mortality data for study 79_1023 (only 4-year follow-up)
   filter(!cohort_id %in% c("79_1023_5", "79_1023_6", "79_1023_7")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)))
-  
 
-#Data
-dt_all_tb <- list(N = nrow(mortalityData_tb),
-               interval = mortalityData_tb$interval,
-               lim = cbind(mortalityData_tb$x1, mortalityData_tb$x2),
-               time = rep(NA, nrow(mortalityData_tb)),
-               n_frail = length(unique(mortalityData_tb$study_sev_num)),
-               frail = mortalityData_tb$study_sev_num
-)
+#Running model
+output_comp_all <- run_comp(mortality_comp_all)
 
-#Fitting the model
-fit_all_tb <- jags(data = dt_all_tb, model.file = m_all,
-                parameters.to.save = par_all,
-                n.iter = 11000, n.burnin = 1000,
-                n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_all_tb <- as.mcmc(fit_all_tb)
-eval_all_tb <- mcmc_all_tb[, c("mu", "theta", "sdlog")]
-res_all_tb <- as.data.frame(summary(mcmc_all_tb)$quantiles)
-
-png("Figures/xyplot_all_tb.png")
-xyplot(eval_all_tb)
+#Saving diagnostic plots
+png("Figures/xyplot_comp_all.png")
+xyplot(output_comp_all$eval)
 dev.off()
-png("Figures/autocorr_all_tb.png")
-autocorr.plot(eval_all_tb)
+png("Figures/autocorr_comp_all.png")
+autocorr.plot(output_comp_all$eval)
 dev.off()
 
 
 
-#### TB mortality: stratified model ####
+#### All Studies: Stratified Model ####
 
 #Subsetting and formatting data
-mortalityData_sev_tb <- mortalityData %>%
+mortality_sev_all <- mortality %>%
   filter(severity != "Unknown") %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
@@ -199,170 +257,47 @@ mortalityData_sev_tb <- mortalityData %>%
          sev_adv = as.numeric(severity == "Advanced"),
          sev_unk = as.numeric(severity == "Unknown"))
 
-cohort_data_tb <- mortalityData_sev_tb %>%
-  group_by(study_sev_num) %>%
-  summarize(study_id_num = first(study_id_num),
-            sev_mod = first(sev_mod),
-            sev_adv = first(sev_adv),
-            sev_unk = first(sev_unk))
+#Running model
+output_sev_all <- run_sev(mortality_sev_all)
 
-#Data
-dt_sev_tb <- list(N = nrow(mortalityData_sev_tb),
-               interval = mortalityData_sev_tb$interval,
-               lim = cbind(mortalityData_sev_tb$x1, mortalityData_sev_tb$x2),
-               time = rep(NA, nrow(mortalityData_sev_tb)),
-               n_frail = length(unique(mortalityData_sev_tb$study_id_num)),
-               frail = mortalityData_sev_tb$study_id_num,
-               sev_mod = mortalityData_sev_tb$sev_mod,
-               sev_adv = mortalityData_sev_tb$sev_adv,
-               n_study_sev = nrow(cohort_data_tb),
-               frail2 = cohort_data_tb$study_id_num,
-               study_sev_mod = cohort_data_tb$sev_mod,
-               study_sev_adv = cohort_data_tb$sev_adv
-)
-
-#Fitting model
-fit_sev_tb <- jags(data = dt_sev_tb, model.file = m_sev,
-                parameters.to.save = par_sev,
-                n.iter = 11000, n.burnin = 1000,
-                n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_sev_tb <- as.mcmc(fit_sev_tb)
-eval_sev_tb <- mcmc_sev_tb[, c("alpha", "bmod", "badv", "theta", "sdlog")]
-res_sev_tb <- as.data.frame(summary(mcmc_sev_tb)$quantiles)
-
-png("Figures/xyplot_sev_tb.png")
-xyplot(eval_sev_tb)
+#Saving diagnostic plots
+png("Figures/xyplot_sev_all.png")
+xyplot(output_sev_all$eval)
 dev.off()
-png("Figures/autocorr_sev_tb.png")
-autocorr.plot(eval_sev_tb)
+png("Figures/autocorr_sev_all.png")
+autocorr.plot(output_sev_all$eval)
 dev.off()
 
 
 
-#### Sanatorium Sensitivity Analysis----------------------------------------------------------------
+#### US Studies-------------------------------------------------------------------------------------
 
 
-#### TB mortality: sanatorium/hospital ####
+#### US Studies: Complete Model ####
 
-#Subsetting data
-san_tb <- mortalityData_tb %>%
-  filter(sanatorium == "Yes") %>%
-  mutate(study_sev_num = as.numeric(factor(study_sev)))
-
-#Data
-dt_san_tb <- list(N = nrow(san_tb),
-                  interval = san_tb$interval,
-                  lim = cbind(san_tb$x1, san_tb$x2),
-                  time = rep(NA, nrow(san_tb)),
-                  n_frail = length(unique(san_tb$study_sev_num)),
-                  frail = san_tb$study_sev_num
-                  
-)
-
-#Fitting the model
-fit_san_tb <- jags(data = dt_san_tb, model.file = m_all,
-                   parameters.to.save = par_all,
-                   n.iter = 11000, n.burnin = 1000,
-                   n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_san_tb <- as.mcmc(fit_san_tb)
-eval_san_tb <- mcmc_san_tb[, c("mu", "theta", "sdlog")]
-res_san_tb <- as.data.frame(summary(mcmc_san_tb)$quantiles)
-
-png("Figures/xyplot_san_tb.png")
-xyplot(eval_san_tb)
-dev.off()
-png("Figures/autocorr_san_tb.png")
-autocorr.plot(eval_san_tb)
-dev.off()
-
-
-
-#### TB mortality: non-sanatorium ####
-
-#Subsetting data
-nosan_tb <- mortalityData_tb %>%
-  filter(sanatorium == "No") %>%
-  mutate(study_sev_num = as.numeric(factor(study_sev)))
-
-#Data
-dt_nosan <- list(N = nrow(nosan_tb),
-                 interval = nosan_tb$interval,
-                 lim = cbind(nosan_tb$x1, nosan_tb$x2),
-                 time = rep(NA, nrow(nosan_tb)),
-                 n_frail = length(unique(nosan_tb$study_sev_num)),
-                 frail = nosan_tb$study_sev_num
-                 
-)
-
-#Fitting model
-fit_nosan_tb <- jags(data = dt_nosan, model.file = m_all,
-                     parameters.to.save = par_all,
-                     n.iter = 5000, n.burnin = 500,
-                     n.chains = 1, n.thin = 10)
-
-#Extracting results
-mcmc_nosan_tb <- as.mcmc(fit_nosan_tb)
-eval_nosan_tb <- mcmc_nosan_tb[, c("mu", "theta", "sdlog")]
-res_nosan_tb <- as.data.frame(summary(mcmc_nosan_tb)$quantiles)
-
-png("Figures/xyplot_nosan_tb.png")
-xyplot(eval_nosan_tb)
-dev.off()
-png("Figures/autocorr_nosan_tb.png")
-autocorr.plot(eval_nosan_tb)
-dev.off()
-
-
-
-#### US post-1930 Studies----------------------------------------------------------------
-
-
-#### US post-1930 TB mortality: Complete Model ####
-
-#Removing severity stratified but only four-year mortality data for study 79_1023
-mortalityData_sub <- mortalityData %>%
-  filter(study_id %in% c("1029", "93", "45")) %>%
+#Subsetting and formatting data
+mortality_comp_us <- mortality %>%
+  filter(study_id %in% c("1029", "93", "45", "63", "67", "90_1016")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)))
 
+#Running model
+output_comp_us <- run_comp(mortality_comp_us)
 
-#Data
-dt_all_sub <- list(N = nrow(mortalityData_sub),
-                  interval = mortalityData_sub$interval,
-                  lim = cbind(mortalityData_sub$x1, mortalityData_sub$x2),
-                  time = rep(NA, nrow(mortalityData_sub)),
-                  n_frail = length(unique(mortalityData_sub$study_sev_num)),
-                  frail = mortalityData_sub$study_sev_num
-)
-
-#Fitting the model
-fit_all_sub <- jags(data = dt_all_sub, model.file = m_all,
-                   parameters.to.save = par_all,
-                   n.iter = 11000, n.burnin = 1000,
-                   n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_all_sub <- as.mcmc(fit_all_sub)
-eval_all_sub <- mcmc_all_sub[, c("mu", "theta", "sdlog")]
-res_all_sub <- as.data.frame(summary(mcmc_all_sub)$quantiles)
-
-png("Figures/xyplot_all_sub.png")
-xyplot(eval_all_sub)
+#Saving diagnostic plots
+png("Figures/xyplot_all_us.png")
+xyplot(output_comp_us$eval)
 dev.off()
-png("Figures/autocorr_all_sub.png")
-autocorr.plot(eval_all_sub)
+png("Figures/autocorr_all_us.png")
+autocorr.plot(output_comp_us$eval)
 dev.off()
 
 
 
-#### TB mortality: stratified model ####
+#### US Studies: Stratified Model ####
 
 #Subsetting and formatting data
-mortalityData_sev_sub <- mortalityData %>%
+mortality_sev_us <- mortality %>%
   filter(study_id %in% c("1029", "93", "45")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
@@ -370,44 +305,106 @@ mortalityData_sev_sub <- mortalityData %>%
          sev_adv = as.numeric(severity == "Advanced"),
          sev_unk = as.numeric(severity == "Unknown"))
 
-cohort_data_sub <- mortalityData_sev_sub %>%
-  group_by(study_sev_num) %>%
-  summarize(study_id_num = first(study_id_num),
-            sev_mod = first(sev_mod),
-            sev_adv = first(sev_adv),
-            sev_unk = first(sev_unk))
+#Running model
+output_sev_us <- run_sev(mortality_sev_us)
 
-#Data
-dt_sev_sub <- list(N = nrow(mortalityData_sev_sub),
-                  interval = mortalityData_sev_sub$interval,
-                  lim = cbind(mortalityData_sev_sub$x1, mortalityData_sev_sub$x2),
-                  time = rep(NA, nrow(mortalityData_sev_sub)),
-                  n_frail = length(unique(mortalityData_sev_sub$study_id_num)),
-                  frail = mortalityData_sev_sub$study_id_num,
-                  sev_mod = mortalityData_sev_sub$sev_mod,
-                  sev_adv = mortalityData_sev_sub$sev_adv,
-                  n_study_sev = nrow(cohort_data_sub),
-                  frail2 = cohort_data_sub$study_id_num,
-                  study_sev_mod = cohort_data_sub$sev_mod,
-                  study_sev_adv = cohort_data_sub$sev_adv
-)
-
-#Fitting model
-fit_sev_sub <- jags(data = dt_sev_sub, model.file = m_sev,
-                   parameters.to.save = par_sev,
-                   n.iter = 11000, n.burnin = 1000,
-                   n.chains = 1, n.thin = 20)
-
-#Extracting results
-mcmc_sev_sub <- as.mcmc(fit_sev_sub)
-eval_sev_sub <- mcmc_sev_sub[, c("alpha", "bmod", "badv", "theta", "sdlog")]
-res_sev_sub <- as.data.frame(summary(mcmc_sev_sub)$quantiles)
-
-png("Figures/xyplot_sev_sub.png")
-xyplot(eval_sev_sub)
+#Saving diagnostic plots
+png("Figures/xyplot_sev_us.png")
+xyplot(output_sev_us$eval)
 dev.off()
-png("Figures/autocorr_sev_sub.png")
-autocorr.plot(eval_sev_sub)
+png("Figures/autocorr_sev_us.png")
+autocorr.plot(output_sev_us$eval)
+dev.off()
+
+
+
+#### US post-1930 Studies---------------------------------------------------------------------------
+
+
+#### US post-1930 Studies: Complete Model ####
+
+#Removing severity stratified but only four-year mortality data for study 79_1023
+mortality_comp_post <- mortality %>%
+  filter(study_id %in% c("1029", "93", "45")) %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)),
+         study_id_num = as.numeric(factor(study_id)))
+
+#Running model
+output_comp_post <- run_comp(mortality_comp_post)
+
+#Saving diagnostic plots
+png("Figures/xyplot_all_post.png")
+xyplot(output_comp_post$eval)
+dev.off()
+png("Figures/autocorr_all_post.png")
+autocorr.plot(output_comp_post$eval)
+dev.off()
+
+
+
+#### US post-1930 Studies: Stratified Model ####
+
+#Subsetting and formatting data
+mortality_sev_post <- mortality %>%
+  filter(study_id %in% c("1029", "93", "45")) %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)),
+         study_id_num = as.numeric(factor(study_id)),
+         sev_mod = as.numeric(severity == "Moderate"),
+         sev_adv = as.numeric(severity == "Advanced"),
+         sev_unk = as.numeric(severity == "Unknown"))
+
+#Running model
+output_sev_post <- run_sev(mortality_sev_post)
+
+#Saving diagnostic plots
+png("Figures/xyplot_sev_post.png")
+xyplot(output_sev_post$eval)
+dev.off()
+png("Figures/autocorr_sev_post.png")
+autocorr.plot(output_sev_post$eval)
+dev.off()
+
+
+
+#### Sanatorium Sensitivity Analysis----------------------------------------------------------------
+
+
+#### Sanatorium/hospital ####
+
+#Subsetting data
+san <- mortality_comp_all %>%
+  filter(sanatorium == "Yes") %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)))
+
+#Running model
+output_san <- run_comp(san)
+
+#Making diagnostic plots
+png("Figures/xyplot_san.png")
+xyplot(output_san$eval)
+dev.off()
+png("Figures/autocorr_san.png")
+autocorr.plot(output_san$eval)
+dev.off()
+
+
+
+#### TB mortality: non-sanatorium ####
+
+#Subsetting data
+nosan <- mortality_comp_all %>%
+  filter(sanatorium == "No") %>%
+  mutate(study_sev_num = as.numeric(factor(study_sev)))
+
+#Running model
+output_nosan <- run_comp(nosan)
+
+#Making diagnostic plots
+png("Figures/xyplot_nosan.png")
+xyplot(output_nosan$eval)
+dev.off()
+png("Figures/autocorr_nosan.png")
+autocorr.plot(output_nosan$eval)
 dev.off()
 
 
@@ -433,15 +430,28 @@ getData <- function(data){
   return(list(tab, counts))
 }
 
-data_all_tb <- getData(mortalityData_tb)
-data_sev_tb <- getData(mortalityData_sev_tb)
-data_san_tb <- getData(san_tb)
-data_nosan_tb <- getData(nosan_tb)
-data_all_sub  <- getData(mortalityData_sub)
-data_sev_sub <- getData(mortalityData_sev_sub)
+data_comp_all <- getData(mortality_comp_all)
+data_sev_all <- getData(mortality_sev_all)
+data_comp_us  <- getData(mortality_comp_us)
+data_sev_us <- getData(mortality_sev_us)
+data_comp_post  <- getData(mortality_comp_post)
+data_sev_post <- getData(mortality_sev_post)
+data_san <- getData(san)
+data_nosan <- getData(nosan)
+
+res_comp_all <- output_comp_all$res
+res_sev_all <- output_sev_all$res
+res_comp_us <- output_comp_us$res
+res_sev_us <- output_sev_us$res
+res_comp_post <- output_comp_post$res
+res_sev_post <- output_sev_post$res
+res_san <- output_san$res
+res_nosan <- output_nosan$res
 
 
-save(res_all_tb, res_sev_tb, res_san_tb, res_nosan_tb, res_all_sub, res_sev_sub,
-     data_all_tb, data_sev_tb, data_san_tb, data_nosan_tb, data_all_sub, data_sev_sub,
+save(res_comp_all, res_sev_all, data_comp_all, data_sev_all,
+     res_comp_us, res_sev_us, data_comp_us, data_sev_us,
+     res_comp_post, res_sev_post, data_comp_post, data_sev_post,
+     res_san, res_nosan, data_san, data_nosan,
      file = "R/bayesian_mortality.RData")
 
