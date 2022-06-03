@@ -162,12 +162,12 @@ format_param <- function(res, label, fixed){
   #Parameter values
   if(fixed == FALSE){
     
-    param <- res[row.names(res) %in% c("mu", "sdlog", "theta", "med_all",
-                                       "pred_all[1]", "pred_all[5]", "pred_all[10]"), ]
+    param <- res[row.names(res) %in% c("mu", "sdlog", "theta", "med_comp",
+                                       "pred_comp[1]", "pred_comp[5]", "pred_comp[10]"), ]
     names(param) <- c("cilb", "lowerquant", "est", "upperquant", "ciub")
     param <- param %>% mutate(value = row.names(param),
                               value = ifelse(value == "mu", "meanlog",
-                                             ifelse(value == "med_all", "median", gsub("_all\\[|\\]", "", value))),
+                                             ifelse(value == "med_comp", "median", gsub("_comp\\[|\\]", "", value))),
                               label = label)
   }else{
     param <- res[row.names(res) %in% c("meanlog_min", "meanlog_mod", "meanlog_adv",
@@ -199,7 +199,7 @@ format_surv_dens <- function(param, res, label, fixed){
     surv <- plnorm(x, meanlog, sdlog, lower.tail = FALSE)
     
     #Credible bounds for survival curves
-    credint <- res[grepl("pred_all", row.names(res)), ]
+    credint <- res[grepl("pred_comp", row.names(res)), ]
     credint <- credint %>%
       mutate(x = as.numeric(str_extract(row.names(.), "[0-9]+"))) %>%
       select(x, surv_est = `50%`, cilb = `2.5%`, ciub = `97.5%`) %>%

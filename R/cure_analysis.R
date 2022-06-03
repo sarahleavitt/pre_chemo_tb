@@ -104,13 +104,12 @@ dt_3 <- list(nStudy = length(unique(cureData_3$study_id)),
 #Fitting the model
 fit_3 <- jags(data = dt_3, model.file = m_cure,
                 parameters.to.save = par_cure,
-                n.iter = 11000, n.burnin = 1000,
-                n.chains = 1, n.thin = 20)
+                n.iter = 61000, n.burnin = 1000,
+                n.chains = 1, n.thin = 30)
 
 #Extracting data
 mcmc_3 <- as.mcmc(fit_3)
 eval_3 <- mcmc_3
-summary(eval_3)$quantiles
 
 png("Figures/xyplot_cure_3year.png")
 xyplot(eval_3[, c("alpha", "bmod", "bmin", "theta")])
@@ -149,13 +148,12 @@ dt_4 <- list(nStudy = length(unique(cureData$study_id)),
 #Fitting the model
 fit_4 <- jags(data = dt_4, model.file = m_cure,
               parameters.to.save = par_cure,
-              n.iter = 11000, n.burnin = 1000,
-              n.chains = 1, n.thin = 20)
+              n.iter = 60100, n.burnin = 1000,
+              n.chains = 1, n.thin = 30)
 
 #Extracting data
 mcmc_4 <- as.mcmc(fit_4)
 eval_4 <- mcmc_4
-summary(eval_4)$quantiles
 
 png("Figures/xyplot_cure_4year.png")
 xyplot(eval_4[, c("alpha", "bmod", "bmin", "theta")])
@@ -169,9 +167,9 @@ dev.off()
 #### Three year only analysis, all studies ---------------------------------------------------------
 
 ## Running the model
-cureData_3sub <- cureData %>% filter(study_id %in% c("1029", "45"))
+cureData_3us <- cureData %>% filter(study_id %in% c("1029", "45"))
 
-cureAggregate_3sub <- cureData_3sub %>%
+cureAggregate_3us <- cureData_3us %>%
   group_by(study_id) %>%
   summarize(nMin = sum(severity == "Minimal"),
             nMod = sum(severity == "Moderate"),
@@ -182,32 +180,33 @@ cureAggregate_3sub <- cureData_3sub %>%
             .groups = "drop")
 
 #Data
-dt_3sub <- list(nStudy = length(unique(cureData_3sub$study_id)),
-             nMin = cureAggregate_3sub$nMin,
-             nMod = cureAggregate_3sub$nMod,
-             nAdv = cureAggregate_3sub$nAdv,
-             cMin = cureAggregate_3sub$cMin,
-             cMod = cureAggregate_3sub$cMod,
-             cAdv = cureAggregate_3sub$cAdv
+dt_3us <- list(nStudy = length(unique(cureData_3us$study_id)),
+             nMin = cureAggregate_3us$nMin,
+             nMod = cureAggregate_3us$nMod,
+             nAdv = cureAggregate_3us$nAdv,
+             cMin = cureAggregate_3us$cMin,
+             cMod = cureAggregate_3us$cMod,
+             cAdv = cureAggregate_3us$cAdv
 )
 
 #Fitting the model
-fit_3sub <- jags(data = dt_3sub, model.file = m_cure,
+fit_3us <- jags(data = dt_3us, model.file = m_cure,
               parameters.to.save = par_cure,
-              n.iter = 11000, n.burnin = 1000,
-              n.chains = 1, n.thin = 20)
+              n.iter = 61000, n.burnin = 1000,
+              n.chains = 1, n.thin = 30)
 
 #Extracting data
-mcmc_3sub <- as.mcmc(fit_3sub)
-eval_3sub <- mcmc_3sub
-summary(eval_3sub)$quantiles
+mcmc_3us <- as.mcmc(fit_3us)
+eval_3us <- mcmc_3us
 
-png("Figures/xyplot_cure_3subyear.png")
-xyplot(eval_3sub[, c("alpha", "bmod", "bmin", "theta")])
+png("Figures/xyplot_cure_3year_us.png")
+xyplot(eval_3us[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
-png("Figures/autocorr_cure_3subyear.png")
-autocorr.plot(eval_3sub[, c("alpha", "bmod", "bmin", "theta")])
+png("Figures/autocorr_cure_3year_us.png")
+autocorr.plot(eval_3us[, c("alpha", "bmod", "bmin", "theta")])
 dev.off()
+
+
 
 
 
@@ -226,8 +225,8 @@ or_4 <- tabs_4[[1]]
 cureTab_4 <- tabs_4[[2]]
 
 ## Three year only, US post-1930s
-tabs_3sub <- make_cure_tab(eval_3sub, cureAggregate_3sub)
-or_3sub <- tabs_3sub[[1]]
-cureTab_3sub <- tabs_3sub[[2]]
+tabs_3us <- make_cure_tab(eval_3us, cureAggregate_3us)
+or_3us <- tabs_3us[[1]]
+cureTab_3us <- tabs_3us[[2]]
 
 

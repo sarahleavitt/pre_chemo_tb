@@ -152,7 +152,7 @@ par_sev <- c("theta", "sdlog", "alpha", "bmod", "badv",
 
 #### Complete model (no fixed effect for severity) ####
 
-run_comp <- function(df, n.iter = 11000, n.burnin = 1000, n.thin = 20){
+run_comp <- function(df, n.iter = 61000, n.burnin = 1000, n.thin = 30){
   
   #Create MCMC dataset
   dt <- list(N = nrow(df),
