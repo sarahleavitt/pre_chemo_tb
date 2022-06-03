@@ -17,22 +17,161 @@ reload_source()
 studyid <- read.csv("data/study_id.csv")
 
 #Reading in individual mortality data and analysis results
-mortalityData <- read.csv("data/mortality_data.csv")
+mortality <- read.csv("data/mortality_data.csv")
 load('R/bayesian_mortality.RData')
 
 #Formatting results
-form_all_tb <- formatBayesian(mortalityData, res_all_tb, data_all_tb, "Combined")
-form_sev_tb <- formatBayesian(mortalityData, res_sev_tb, data_sev_tb, "Severity", fixed = TRUE)
-form_san_tb <- formatBayesian(mortalityData, res_san_tb, data_san_tb, "Sanatorium/hospital")
-form_nosan_tb <- formatBayesian(mortalityData, res_nosan_tb, data_nosan_tb, "Non-Sanatorium")
-form_all_sub <- formatBayesian(mortalityData, res_all_sub, data_all_sub, "Combined_Sub")
-form_sev_sub <- formatBayesian(mortalityData, res_sev_sub, data_sev_sub, "Severity_Sub", fixed = TRUE)
+form_comp_all <- formatBayesian(mortality, res_comp_all, data_comp_all, "Combined_all")
+form_sev_all <- formatBayesian(mortality, res_sev_all, data_sev_all, "Severity_all", fixed = TRUE)
+form_comp_us <- formatBayesian(mortality, res_comp_us, data_comp_us, "Combined_us")
+form_sev_us <- formatBayesian(mortality, res_sev_us, data_sev_us, "Severity_us", fixed = TRUE)
+form_comp_post <- formatBayesian(mortality, res_comp_post, data_comp_post, "Combined_post")
+form_sev_post <- formatBayesian(mortality, res_sev_post, data_sev_post, "Severity_post", fixed = TRUE)
+form_san <- formatBayesian(mortality, res_san, data_san, "Sanatorium/hospital")
+form_nosan <- formatBayesian(mortality, res_nosan, data_nosan, "Non-Sanatorium")
+
+
+
+#### Table of Main Results -------------------------------------------------------------------------
+
+#Combining raw tables from results lists
+raw_tab <- bind_rows(form_comp_all$param, form_sev_all$param,
+                     form_comp_us$param, form_sev_us$param,
+                     form_comp_post$param, form_sev_post$param,
+                     form_san$param, form_nosan$param)
+
+#Adding formatted, ordered labels
+raw_tab <- raw_tab %>%
+  mutate(Severity = ifelse(is.na(severity), label,
+                           ifelse(label == "Severity_all", paste0(severity, "_all"),
+                                  ifelse(label == "Severity_us", paste0(severity, "_us"),
+                                         ifelse(label == "Severity_post", paste0(severity, "_post"),
+                                                label)))),
+         Severity = factor(Severity, level = c("Minimal_all", "Moderate_all", "Advanced_all", "Combined_all",
+                                               "Minimal_us", "Moderate_us", "Advanced_us", "Combined_us",
+                                               "Minimal_post", "Moderate_post", "Advanced_post", "Combined_post",
+                                               "Sanatorium/hospital", "Non-Sanatorium"))) %>%
+  arrange(Severity)
+
+#Extracting the survival probabilities
+pred1_tab <- raw_tab %>%
+  filter(value == "pred1") %>%
+  mutate(`1-Year Survival (95% CI)` = paste0(round(est, 2), " (",
+                                             round(cilb, 2), ", ",
+                                             round(ciub, 2), ")")) %>%
+  select(Severity, `1-Year Survival (95% CI)`)
+
+pred5_tab <- raw_tab %>%
+  filter(value == "pred5") %>%
+  mutate(`5-Year Survival (95% CI)` = paste0(round(est, 2), " (",
+                                             round(cilb, 2), ", ",
+                                             round(ciub, 2), ")")) %>%
+  select(Severity, `5-Year Survival (95% CI)`)
+
+pred10_tab <- raw_tab %>%
+  filter(value == "pred10") %>%
+  mutate(`10-Year Survival (95% CI)` = paste0(round(est, 2), " (",
+                                              round(cilb, 2), ", ",
+                                              round(ciub, 2), ")")) %>%
+  select(Severity, `10-Year Survival (95% CI)`)
+
+
+#Extracting the distribution parameters
+sdlog <- raw_tab %>%
+  filter(value == "sdlog") %>%
+  select(label, sdlog = est)
+
+dist_tab <- raw_tab %>%
+  filter(value == "meanlog") %>%
+  full_join(sdlog, by = "label") %>%
+  mutate(`Survival Distribution` = paste0("lognormal(", round(est, 2), ", ",
+                                          round(sdlog, 2), ")")) %>%
+  select(Severity, `Survival Distribution`)
+
+
+#Finding number of papers, cohorts, individual for each analysis
+data_comp_all2 <- as.data.frame(t(data_comp_all[[2]]))
+data_comp_all2$Severity <- "Combined_all"
+data_comp_us2 <- as.data.frame(t(data_comp_us[[2]]))
+data_comp_us2$Severity <- "Combined_us"
+data_comp_post2 <- as.data.frame(t(data_comp_post[[2]]))
+data_comp_post2$Severity <- "Combined_post"
+data_san2 <- as.data.frame(t(data_san[[2]]))
+data_san2$Severity <- "Sanatorium/hospital"
+data_nosan2 <- as.data.frame(t(data_nosan[[2]]))
+data_nosan2$Severity <- "Non-Sanatorium"
+
+counts_comp <- bind_rows(data_comp_all2, data_comp_us2, data_comp_post2, data_san2, data_nosan2)
+
+#Counts stratified by severity for all studies
+mortality_sev <- mortality %>% filter(severity != "Unknown")
+
+counts_all <- mortality_sev %>%
+  group_by(severity) %>%
+  summarize(nStudies = length(unique(study_id)),
+            nCohorts = length(unique(cohort_id)),
+            nIndividuals = n(),
+            .groups = "drop") %>%
+  mutate(Severity = paste0(severity, "_all"))
+
+
+#Counts stratified by severity for US studies
+mortality_us <- mortality %>% filter(severity != "Unknown",
+                                     study_id %in% c("1029", "93", "45", "63", "67", "90_1016"))
+
+counts_us <- mortality_us %>%
+  group_by(severity) %>%
+  summarize(nStudies = length(unique(study_id)),
+            nCohorts = length(unique(cohort_id)),
+            nIndividuals = n(),
+            .groups = "drop") %>%
+  mutate(Severity = paste0(severity, "_us"))
+
+
+#Counts stratified by severity for US post-1930s subset
+mortality_post <- mortality %>% filter(severity != "Unknown", study_id %in% c("1029", "93", "45"))
+
+counts_post <- mortality_post %>%
+  group_by(severity) %>%
+  summarize(nStudies = length(unique(study_id)),
+            nCohorts = length(unique(cohort_id)),
+            nIndividuals = n(),
+            .groups = "drop") %>%
+  mutate(Severity = paste0(severity, "_post"))
+
+
+counts_initial <- bind_rows(counts_comp, counts_all, counts_us, counts_post) %>%
+  select(Severity, `Number of Studies` = nStudies,
+         `Number of Cohorts` = nCohorts,
+         `Number of Individuals` = nIndividuals)
+
+
+
+#Combining the tables
+final_tab <- dist_tab %>%
+  full_join(pred1_tab, by = c("Severity")) %>%
+  full_join(pred5_tab, by = c("Severity")) %>%
+  full_join(pred10_tab, by = c("Severity")) %>%
+  full_join(counts_initial, by = c("Severity"))
+
+#Separating three tables for paper
+all_tab <- final_tab %>% filter(grepl("all", Severity))
+us_tab <- final_tab %>% filter(grepl("us", Severity))
+post_tab <- final_tab %>% filter(grepl("post", Severity))
+san_tab <- final_tab %>% filter(grepl("San", Severity))
+
+#Variance of frailty terms
+theta <- raw_tab %>%
+  filter(value == "theta") %>%
+  mutate(theta = round(est, 2)) %>%
+  select(label, theta)
+
 
 
 #### All studies summary survival curves -----------------------------------------------------------
 
 #TB survival for full model
-p1 <- ggplot(form_all_tb$surv_dens) +
+p1 <- ggplot(form_comp_all$surv_dens) +
   geom_line(aes(x = x, y = surv),
             color = "black", size = 1, linetype = "solid") +
   geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
@@ -43,7 +182,7 @@ p1 <- ggplot(form_all_tb$surv_dens) +
 
 
 #TB survival for fixed effect model
-p2 <- ggplot(form_sev_tb$surv_dens) +
+p2 <- ggplot(form_sev_all$surv_dens) +
   geom_line(aes(x = x, y = surv, color = severity),
             size = 1, linetype = "solid") +
   geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
@@ -68,10 +207,10 @@ ggsave("Figures/survival_curves.png",
 #### All studies individual survival curves --------------------------------------------------------
 
 #TB survival for full model
-s1 <- ggplot(form_all_tb$ind_surv) +
+s1 <- ggplot(form_comp_all$ind_surv) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 0.7, alpha = 0.3) +
-  geom_line(data = form_all_tb$surv_dens, aes(x = x, y = surv),
+  geom_line(data = form_comp_all$surv_dens, aes(x = x, y = surv),
             color = "black", size = 1, linetype = "longdash") +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
@@ -82,10 +221,10 @@ s1 <- ggplot(form_all_tb$ind_surv) +
                                 "Far advanced" = "firebrick2", "Unknown" = "grey50"))
 
 #TB survival for stratified model
-s2 <- ggplot(form_sev_tb$ind_surv) +
+s2 <- ggplot(form_sev_all$ind_surv) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 0.7, alpha = 0.3) +
-  geom_line(data = form_sev_tb$surv_dens,
+  geom_line(data = form_sev_all$surv_dens,
             aes(x = x, y = surv, color = severity),
             linetype = "longdash", size = 1) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
@@ -106,7 +245,7 @@ ggsave("Figures/survival_curves_supp.png",
 #### US post-1930s summary survival curves ---------------------------------------------------------
 
 #TB survival for full model
-p1_sub <- ggplot(form_all_sub$surv_dens) +
+p1_sub <- ggplot(form_comp_us$surv_dens) +
   geom_line(aes(x = x, y = surv),
             color = "black", size = 1, linetype = "solid") +
   geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
@@ -117,7 +256,7 @@ p1_sub <- ggplot(form_all_sub$surv_dens) +
 
 
 #TB survival for fixed effect model
-p2_sub <- ggplot(form_sev_sub$surv_dens) +
+p2_sub <- ggplot(form_sev_us$surv_dens) +
   geom_line(aes(x = x, y = surv, color = severity),
             size = 1, linetype = "solid") +
   geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
@@ -142,10 +281,10 @@ ggsave("Figures/survival_curves_subset.png",
 #### US post-1930s individual survival curves ------------------------------------------------------
 
 #TB survival for full model
-s1_sub <- ggplot(form_all_sub$ind_surv) +
+s1_sub <- ggplot(form_comp_us$ind_surv) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 0.7, alpha = 0.3) +
-  geom_line(data = form_all_tb$surv_dens, aes(x = x, y = surv),
+  geom_line(data = form_comp_all$surv_dens, aes(x = x, y = surv),
             color = "black", size = 1, linetype = "longdash") +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
   scale_x_continuous(name = "Years", limits = c(0, 30)) +
@@ -156,10 +295,10 @@ s1_sub <- ggplot(form_all_sub$ind_surv) +
                                 "Far advanced" = "firebrick2", "Unknown" = "grey50"))
 
 #TB survival for stratified model
-s2_sub <- ggplot(form_sev_sub$ind_surv) +
+s2_sub <- ggplot(form_sev_us$ind_surv) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 0.7, alpha = 0.3) +
-  geom_line(data = form_sev_sub$surv_dens,
+  geom_line(data = form_sev_us$surv_dens,
             aes(x = x, y = surv, color = severity),
             linetype = "longdash", size = 1) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
@@ -178,10 +317,10 @@ ggsave("Figures/survival_curves_supp_subset.png",
 
 #### All studies survival curves by category -------------------------------------------------------
 
-ggplot(form_sev_tb$ind_surv) +
+ggplot(form_sev_all$ind_surv) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = category),
             size = 0.7, alpha = 0.3) +
-  geom_line(data = form_sev_tb$surv_dens,
+  geom_line(data = form_sev_all$surv_dens,
             aes(x = x, y = surv, group = severity),
             linetype = "longdash", size = 1, color = "grey50") +
   facet_wrap(~severity) +
@@ -198,14 +337,14 @@ ggplot(form_sev_tb$ind_surv) +
 
 ##### Forest plots --------------------------------------------------------------------------------
 
-pred_plot_all <- form_all_tb$pred_comb %>%
+pred_plot_all <- form_comp_all$pred_comb %>%
   mutate(category = ifelse(is.na(category), "Overall", category),
          category = factor(category, levels = c("US post-1930", "US pre-1930",
                                                 "Non-US", "Overall"))) %>%
   arrange(desc(category), desc(first_author)) %>%
   mutate(first_author = factor(first_author, levels=unique(first_author)))
 
-pred_plot_sev <- form_sev_tb$pred_comb %>%
+pred_plot_sev <- form_sev_all$pred_comb %>%
   mutate(category = ifelse(is.na(category), "Overall", category),
          category = factor(category, levels = c("US post-1930", "US pre-1930", 
                                                 "Non-US", "Overall"))) %>%
@@ -257,8 +396,7 @@ ggplot(pred_plot_sev %>% filter(value != "median"),
 
 #### Sanatorium Sensitivity Analysis----------------------------------------------------------------
 
-#TB survival for full model
-s1s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
+ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
   facet_wrap(~label, nrow = 2) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 1, alpha = 0.3) +
@@ -278,114 +416,4 @@ s1s <- ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
 
 
 
-#### Table of Main Results -------------------------------------------------------------------------
 
-#Combining raw tables from results lists
-raw_tab <- bind_rows(form_all_tb$param, form_sev_tb$param,
-                     form_san_tb$param, form_nosan_tb$param,
-                     form_all_sub$param, form_sev_sub$param)
-
-#Adding formatted, ordered labels
-raw_tab <- raw_tab %>%
-  mutate(Severity = ifelse(label == "Severity", severity,
-                           ifelse(label == "Severity_Sub", paste0(severity, "_Sub"),
-                                  label)),
-         Severity = factor(Severity, level = c("Minimal", "Moderate", "Advanced", "Combined",
-                                               "Minimal_Sub", "Moderate_Sub", "Advanced_Sub",
-                                               "Combined_Sub", "Sanatorium/hospital",
-                                               "Non-Sanatorium"))) %>%
-  arrange(Severity)
-
-#Extracting the survival probabilities
-pred1_tab <- raw_tab %>%
-  filter(value == "pred1") %>%
-  mutate(`1-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                            round(cilb, 2), ", ",
-                            round(ciub, 2), ")")) %>%
-    select(Severity, `1-Year Survival (95% CI)`)
-
-pred5_tab <- raw_tab %>%
-  filter(value == "pred5") %>%
-  mutate(`5-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                                            round(cilb, 2), ", ",
-                                            round(ciub, 2), ")")) %>%
-  select(Severity, `5-Year Survival (95% CI)`)
-
-pred10_tab <- raw_tab %>%
-  filter(value == "pred10") %>%
-  mutate(`10-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                                            round(cilb, 2), ", ",
-                                            round(ciub, 2), ")")) %>%
-  select(Severity, `10-Year Survival (95% CI)`)
-
-
-#Extracting the distribution parameters
-sdlog <- raw_tab %>%
-  filter(value == "sdlog") %>%
-  select(label, sdlog = est)
-
-dist_tab <- raw_tab %>%
-  filter(value == "meanlog") %>%
-  full_join(sdlog, by = "label") %>%
-  mutate(`Survival Distribution` = paste0("lognormal(", round(est, 2), ", ",
-                                          round(sdlog, 2), ")")) %>%
-  select(Severity, `Survival Distribution`)
-
-
-#Finding number of papers, cohorts, individuals for each analysis
-data_all_tb2 <- as.data.frame(t(data_all_tb[[2]]))
-data_san_tb2 <- as.data.frame(t(data_san_tb[[2]]))
-data_nosan_tb2 <- as.data.frame(t(data_nosan_tb[[2]]))
-data_all_sub2 <- as.data.frame(t(data_all_sub[[2]]))
-data_all_tb2$Severity <- "Combined"
-data_san_tb2$Severity <- "Sanatorium/hospital"
-data_nosan_tb2$Severity <- "Non-Sanatorium"
-data_all_sub2$Severity <- "Combined_Sub"
-counts_tb <- bind_rows(data_all_tb2, data_san_tb2, data_nosan_tb2, data_all_sub2)
-
-#Counts stratified by severity for all studies
-mortalityData_sev <- mortalityData %>% filter(severity != "Unknown")
-counts_sev <- mortalityData_sev %>%
-  group_by(severity) %>%
-  summarize(nStudies = length(unique(study_id)),
-            nCohorts = length(unique(cohort_id)),
-            nIndividuals = n(),
-            .groups = "drop") %>%
-  rename(Severity = severity)
-
-#Counts stratified by severity for US post-1930s subset
-mortalityData_sub <- mortalityData %>% filter(severity != "Unknown",
-                                              study_id %in% c("1029", "93", "45"))
-counts_sub <- mortalityData_sub %>%
-  group_by(severity) %>%
-  summarize(nStudies = length(unique(study_id)),
-            nCohorts = length(unique(cohort_id)),
-            nIndividuals = n(),
-            .groups = "drop") %>%
-  mutate(Severity = paste0(severity, "_Sub"))
-
-
-counts_initial <- bind_rows(counts_tb, counts_sev, counts_sub) %>%
-  select(Severity, `Number of Studies` = nStudies,
-         `Number of Cohorts` = nCohorts,
-         `Number of Individuals` = nIndividuals)
-
-  
-
-#Combining the tables
-final_tab <- dist_tab %>%
-  full_join(pred1_tab, by = c("Severity")) %>%
-  full_join(pred5_tab, by = c("Severity")) %>%
-  full_join(pred10_tab, by = c("Severity")) %>%
-  full_join(counts_initial, by = c("Severity"))
-
-#Separating three tables for paper
-main_tab <- final_tab %>% filter(!grepl("San|Sub", Severity))
-sub_tab <- final_tab %>% filter(grepl("Sub", Severity))
-san_tab <- final_tab %>% filter(grepl("San", Severity))
-
-#Variance of frailty terms
-theta <- raw_tab %>%
-  filter(value == "theta") %>%
-  mutate(theta = round(est, 2)) %>%
-  select(label, theta)
