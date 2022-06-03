@@ -4,8 +4,10 @@
 
 ##############################################################################
 # This program performs the mortality Bayesian meta-analysis and saves the
-# results as an R object. This takes around 30 minutes to run.
+# results as an R object. This takes around XXX minutes to run.
 ##############################################################################
+
+setwd("/usr3/graduate/sv1205/pre_chemo_tb/")
 
 options(scipen=999)
 options(digits = 10)
@@ -152,7 +154,7 @@ par_sev <- c("theta", "sdlog", "alpha", "bmod", "badv",
 
 #### Complete model (no fixed effect for severity) ####
 
-run_comp <- function(df, n.iter = 61000, n.burnin = 1000, n.thin = 30){
+run_comp <- function(df, n.iter = 100, n.burnin = 1, n.thin = 1){
   
   #Create MCMC dataset
   dt <- list(N = nrow(df),
@@ -180,7 +182,7 @@ run_comp <- function(df, n.iter = 61000, n.burnin = 1000, n.thin = 30){
 
 #### Stratified model (fixed effect for severity) ####
 
-run_sev <- function(df, n.iter = 11000, n.burnin = 1000, n.thin = 20){
+run_sev <- function(df, n.iter = 100, n.burnin = 1, n.thin = 1){
   
   #Getting information for each cohort
   cohort_data <- df %>%
@@ -285,10 +287,10 @@ mortality_comp_us <- mortality %>%
 output_comp_us <- run_comp(mortality_comp_us)
 
 #Saving diagnostic plots
-png("Figures/xyplot_all_us.png")
+png("Figures/xyplot_comp_us.png")
 xyplot(output_comp_us$eval)
 dev.off()
-png("Figures/autocorr_all_us.png")
+png("Figures/autocorr_comp_us.png")
 autocorr.plot(output_comp_us$eval)
 dev.off()
 
@@ -333,10 +335,10 @@ mortality_comp_post <- mortality %>%
 output_comp_post <- run_comp(mortality_comp_post)
 
 #Saving diagnostic plots
-png("Figures/xyplot_all_post.png")
+png("Figures/xyplot_comp_post.png")
 xyplot(output_comp_post$eval)
 dev.off()
-png("Figures/autocorr_all_post.png")
+png("Figures/autocorr_comp_post.png")
 autocorr.plot(output_comp_post$eval)
 dev.off()
 
@@ -448,10 +450,19 @@ res_sev_post <- output_sev_post$res
 res_san <- output_san$res
 res_nosan <- output_nosan$res
 
+eval_comp_all <- output_comp_all$eval
+eval_sev_all <- output_sev_all$eval
+eval_comp_us <- output_comp_us$eval
+eval_sev_us <- output_sev_us$eval
+eval_comp_post <- output_comp_post$eval
+eval_sev_post <- output_sev_post$eval
+eval_san <- output_san$eval
+eval_nosan <- output_nosan$eval
 
-save(res_comp_all, res_sev_all, data_comp_all, data_sev_all,
-     res_comp_us, res_sev_us, data_comp_us, data_sev_us,
-     res_comp_post, res_sev_post, data_comp_post, data_sev_post,
-     res_san, res_nosan, data_san, data_nosan,
+
+save(res_comp_all, res_sev_all, eval_comp_all, eval_sev_all, data_comp_all, data_sev_all,
+     res_comp_us, res_sev_us, eval_comp_us, eval_sev_us, data_comp_us, data_sev_us,
+     res_comp_post, res_sev_post, eval_comp_post, eval_sev_post, data_comp_post, data_sev_post,
+     res_san, res_nosan, eval_san, eval_nosan, data_san, data_nosan,
      file = "R/bayesian_mortality.RData")
 
