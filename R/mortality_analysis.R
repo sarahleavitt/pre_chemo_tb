@@ -7,8 +7,6 @@
 # results as an R object. This takes around XXX minutes to run.
 ##############################################################################
 
-setwd("/usr3/graduate/sv1205/pre_chemo_tb/")
-
 options(scipen=999)
 options(digits = 10)
 set.seed(150183)
