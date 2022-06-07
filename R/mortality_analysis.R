@@ -4,7 +4,7 @@
 
 ##############################################################################
 # This program performs the mortality Bayesian meta-analysis and saves the
-# results as an R object. This takes around XXX minutes to run.
+# results as an R object. This takes around 3 hours to run.
 ##############################################################################
 
 options(scipen=999)
@@ -298,7 +298,7 @@ dev.off()
 
 #Subsetting and formatting data
 mortality_sev_us <- mortality %>%
-  filter(study_id %in% c("1029", "93", "45")) %>%
+  filter(study_id %in% c("1029", "93", "45", "63", "67", "90_1016")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
          sev_mod = as.numeric(severity == "Moderate"),

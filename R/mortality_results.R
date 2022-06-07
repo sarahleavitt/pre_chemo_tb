@@ -168,151 +168,105 @@ theta <- raw_tab %>%
 
 
 
-#### All studies summary survival curves -----------------------------------------------------------
+#### Summary Survival Curves -----------------------------------------------------------------------
 
-#TB survival for full model
-p1 <- ggplot(form_comp_all$surv_dens) +
-  geom_line(aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "solid") +
-  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
-              stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw()
+plot_sum_curves <- function(complete_model, stratified_model){
+  
+  #Survival curve for complete model
+  p1 <- ggplot(complete_model$surv_dens) +
+    geom_line(aes(x = x, y = surv),
+              color = "black", size = 1, linetype = "solid") +
+    geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
+                stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
+    scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+    scale_x_continuous(name = "Years", limits = c(0, 30)) +
+    theme_bw()
+  
+  
+  #TB survival for fixed effect model
+  p2 <- ggplot(stratified_model$surv_dens) +
+    geom_line(aes(x = x, y = surv, color = severity),
+              size = 1, linetype = "solid") +
+    geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
+                stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
+    scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+    scale_x_continuous(name = "Years", limits = c(0, 30)) +
+    theme_bw() +
+    theme(legend.position = "bottom") +
+    scale_color_manual("", values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                      "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
+    scale_fill_manual("",
+                      values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                 "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+  
+  p_comb <- arrangeGrob(p1, p2, nrow = 2)
+  return(p_comb)
+}
 
+#All studies
+p_sum_all <- plot_sum_curves(form_comp_all, form_sev_all)
+ggsave("Figures/summary_curves_all.png", p_sum_all, width = 5.5, height = 8)
 
-#TB survival for fixed effect model
-p2 <- ggplot(form_sev_all$surv_dens) +
-  geom_line(aes(x = x, y = surv, color = severity),
-            size = 1, linetype = "solid") +
-  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
-              stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  scale_color_manual("", values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
-  scale_fill_manual("",
-                    values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                               "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+#US studies
+p_sum_us <- plot_sum_curves(form_comp_us, form_sev_us)
+ggsave("Figures/summary_curves_us.png", p_sum_us, width = 5.5, height = 8)
 
-grid.arrange(p1, p2, nrow = 2)
-ggsave("Figures/survival_curves.png",
-       arrangeGrob(p1, p2, nrow = 2),
-       width = 5.5, height = 8)
-
-
-
-#### All studies individual survival curves --------------------------------------------------------
-
-#TB survival for full model
-s1 <- ggplot(form_comp_all$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.3) +
-  geom_line(data = form_comp_all$surv_dens, aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "longdash") +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "none") +
-  scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
-
-#TB survival for stratified model
-s2 <- ggplot(form_sev_all$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.3) +
-  geom_line(data = form_sev_all$surv_dens,
-            aes(x = x, y = surv, color = severity),
-            linetype = "longdash", size = 1) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  scale_color_manual("", drop = FALSE,
-                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
-
-grid.arrange(s1, s2, nrow = 2)
-ggsave("Figures/survival_curves_supp.png",
-       arrangeGrob(s1, s2, nrow = 2),
-       width = 5.5, height = 8)
+#US post-1930s studies
+p_sum_post <- plot_sum_curves(form_comp_post, form_sev_post)
+ggsave("Figures/summary_curves_post.png", p_sum_post, width = 5.5, height = 8)
 
 
 
-#### US post-1930s summary survival curves ---------------------------------------------------------
+#### Individual Survival Curves --------------------------------------------------------------------
 
-#TB survival for full model
-p1_sub <- ggplot(form_comp_us$surv_dens) +
-  geom_line(aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "solid") +
-  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
-              stat = "identity", linetype = 0, alpha = 0.25, na.rm = TRUE) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw()
+plot_ind_curves <- function(complete_model, stratified_model){
+  
+  #Survival curves for complete model
+  p1 <- ggplot(complete_model$ind_surv) +
+    geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+              size = 0.7, alpha = 0.3) +
+    geom_line(data = complete_model$surv_dens, aes(x = x, y = surv),
+              color = "black", size = 1, linetype = "longdash") +
+    scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+    scale_x_continuous(name = "Years", limits = c(0, 30)) +
+    theme_bw() +
+    theme(legend.position = "none") +
+    scale_color_manual("Disease Severity",
+                       values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                  "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+  
+  #Survival curves for stratified model
+  p2 <- ggplot(stratified_model$ind_surv) +
+    geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
+              size = 0.7, alpha = 0.3) +
+    geom_line(data = stratified_model$surv_dens,
+              aes(x = x, y = surv, color = severity),
+              linetype = "longdash", size = 1) +
+    scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
+    scale_x_continuous(name = "Years", limits = c(0, 30)) +
+    theme_bw() +
+    theme(legend.position = "bottom") +
+    scale_color_manual("", drop = FALSE,
+                       values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
+                                  "Far advanced" = "firebrick2", "Unknown" = "grey50"))
+  
+  p_comb <- arrangeGrob(p1, p2, nrow = 2)
+  return(p_comb)
+}
+
+#All studies
+p_ind_all <- plot_ind_curves(form_comp_all, form_sev_all)
+ggsave("Figures/individual_curves_all.png", p_ind_all, width = 5.5, height = 8)
+
+#US studies
+p_ind_us <- plot_ind_curves(form_comp_us, form_sev_us)
+ggsave("Figures/individual_curves_us.png", p_ind_us, width = 5.5, height = 8)
+
+#US post-1930s studies
+p_ind_post <- plot_ind_curves(form_comp_post, form_sev_post)
+ggsave("Figures/individual_curves_post.png", p_ind_post, width = 5.5, height = 8)
 
 
-#TB survival for fixed effect model
-p2_sub <- ggplot(form_sev_us$surv_dens) +
-  geom_line(aes(x = x, y = surv, color = severity),
-            size = 1, linetype = "solid") +
-  geom_smooth(aes(x = x, y = surv_est, ymin = cilb, ymax = ciub, fill = severity),
-              stat = "identity", linetype = 0, alpha = 0.15, na.rm = TRUE) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  scale_color_manual("", values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                    "Far advanced" = "firebrick2", "Unknown" = "grey50")) +
-  scale_fill_manual("",
-                    values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                               "Far advanced" = "firebrick2", "Unknown" = "grey50"))
-
-grid.arrange(p1_sub, p2_sub, nrow = 2)
-ggsave("Figures/survival_curves_subset.png",
-       arrangeGrob(p1_sub, p2_sub, nrow = 2),
-       width = 5.5, height = 8)
-
-
-
-#### US post-1930s individual survival curves ------------------------------------------------------
-
-#TB survival for full model
-s1_sub <- ggplot(form_comp_us$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.3) +
-  geom_line(data = form_comp_all$surv_dens, aes(x = x, y = surv),
-            color = "black", size = 1, linetype = "longdash") +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "none") +
-  scale_color_manual("Disease Severity",
-                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
-
-#TB survival for stratified model
-s2_sub <- ggplot(form_sev_us$ind_surv) +
-  geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
-            size = 0.7, alpha = 0.3) +
-  geom_line(data = form_sev_us$surv_dens,
-            aes(x = x, y = surv, color = severity),
-            linetype = "longdash", size = 1) +
-  scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
-  scale_x_continuous(name = "Years", limits = c(0, 30)) +
-  theme_bw() +
-  theme(legend.position = "bottom") +
-  scale_color_manual("", drop = TRUE,
-                     values = c("Minimal" = "seagreen", "Moderately advanced" = "goldenrod1",
-                                "Far advanced" = "firebrick2", "Unknown" = "grey50"))
-
-grid.arrange(s1_sub, s2_sub, nrow = 2)
-ggsave("Figures/survival_curves_supp_subset.png",
-       arrangeGrob(s1_sub, s2_sub, nrow = 2),
-       width = 5.5, height = 8)
 
 
 #### All studies survival curves by category -------------------------------------------------------
@@ -396,14 +350,14 @@ ggplot(pred_plot_sev %>% filter(value != "median"),
 
 #### Sanatorium Sensitivity Analysis----------------------------------------------------------------
 
-ggplot(bind_rows(form_san_tb$ind_surv, form_nosan_tb$ind_surv)) +
+ggplot(bind_rows(form_san$ind_surv, form_nosan$ind_surv)) +
   facet_wrap(~label, nrow = 2) +
   geom_line(aes(x = x, y = surv, group = study_sev, color = severity),
             size = 1, alpha = 0.3) +
-  geom_line(data = bind_rows(form_san_tb$surv_dens, form_nosan_tb$surv_dens),
+  geom_line(data = bind_rows(form_san$surv_dens, form_nosan$surv_dens),
             aes(x = x, y = surv),
             color = "black", size = 1, linetype = "longdash") +
-  geom_smooth(data = bind_rows(form_san_tb$surv_dens, form_nosan_tb$surv_dens),
+  geom_smooth(data = bind_rows(form_san$surv_dens, form_nosan$surv_dens),
               aes(x = x, y = surv_est, ymin = cilb, ymax = ciub),
               stat = "identity", linetype = 0, alpha = 0.4) +
   scale_y_continuous(name = "Survival, 1 - F(t)", limits = c(0, 1)) +
