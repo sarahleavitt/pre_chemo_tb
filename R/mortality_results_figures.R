@@ -20,171 +20,6 @@ studyid <- read.csv("data/study_id.csv")
 mortality <- read.csv("data/mortality_data.csv")
 load('R/bayesian_mortality.RData')
 
-#Formatting results
-form_comp_all <- formatBayesian(mortality, res_comp_all, data_comp_all, "Combined_all")
-form_sev_all <- formatBayesian(mortality, res_sev_all, data_sev_all, "Severity_all", fixed = TRUE)
-form_comp_us <- formatBayesian(mortality, res_comp_us, data_comp_us, "Combined_us")
-form_sev_us <- formatBayesian(mortality, res_sev_us, data_sev_us, "Severity_us", fixed = TRUE)
-form_comp_post <- formatBayesian(mortality, res_comp_post, data_comp_post, "Combined_post")
-form_sev_post <- formatBayesian(mortality, res_sev_post, data_sev_post, "Severity_post", fixed = TRUE)
-form_san <- formatBayesian(mortality, res_san, data_san, "Sanatorium/hospital")
-form_nosan <- formatBayesian(mortality, res_nosan, data_nosan, "Non-Sanatorium")
-
-
-
-#### Diagnostic Plots ------------------------------------------------------------------------------
-
-## All Studies
-png("Figures/xyplot_comp_all.png")
-xyplot(eval_comp_all)
-dev.off()
-png("Figures/autocorr_comp_all.png")
-autocorr.plot(eval_comp_all)
-dev.off()
-
-png("Figures/xyplot_sev_all.png")
-xyplot(eval_sev_all)
-dev.off()
-png("Figures/autocorr_sev_all.png")
-autocorr.plot(eval_sev_all)
-dev.off()
-
-
-
-#### Table of Main Results -------------------------------------------------------------------------
-
-#Combining raw tables from results lists
-raw_tab <- bind_rows(form_comp_all$param, form_sev_all$param,
-                     form_comp_us$param, form_sev_us$param,
-                     form_comp_post$param, form_sev_post$param,
-                     form_san$param, form_nosan$param)
-
-#Adding formatted, ordered labels
-raw_tab <- raw_tab %>%
-  mutate(Severity = ifelse(is.na(severity), label,
-                           ifelse(label == "Severity_all", paste0(severity, "_all"),
-                                  ifelse(label == "Severity_us", paste0(severity, "_us"),
-                                         ifelse(label == "Severity_post", paste0(severity, "_post"),
-                                                label)))),
-         Severity = factor(Severity, level = c("Minimal_all", "Moderate_all", "Advanced_all", "Combined_all",
-                                               "Minimal_us", "Moderate_us", "Advanced_us", "Combined_us",
-                                               "Minimal_post", "Moderate_post", "Advanced_post", "Combined_post",
-                                               "Sanatorium/hospital", "Non-Sanatorium"))) %>%
-  arrange(Severity)
-
-#Extracting the survival probabilities
-pred1_tab <- raw_tab %>%
-  filter(value == "pred1") %>%
-  mutate(`1-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                                             round(cilb, 2), ", ",
-                                             round(ciub, 2), ")")) %>%
-  select(Severity, `1-Year Survival (95% CI)`)
-
-pred5_tab <- raw_tab %>%
-  filter(value == "pred5") %>%
-  mutate(`5-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                                             round(cilb, 2), ", ",
-                                             round(ciub, 2), ")")) %>%
-  select(Severity, `5-Year Survival (95% CI)`)
-
-pred10_tab <- raw_tab %>%
-  filter(value == "pred10") %>%
-  mutate(`10-Year Survival (95% CI)` = paste0(round(est, 2), " (",
-                                              round(cilb, 2), ", ",
-                                              round(ciub, 2), ")")) %>%
-  select(Severity, `10-Year Survival (95% CI)`)
-
-
-#Extracting the distribution parameters
-sdlog <- raw_tab %>%
-  filter(value == "sdlog") %>%
-  select(label, sdlog = est)
-
-dist_tab <- raw_tab %>%
-  filter(value == "meanlog") %>%
-  full_join(sdlog, by = "label") %>%
-  mutate(`Survival Distribution` = paste0("lognormal(", round(est, 2), ", ",
-                                          round(sdlog, 2), ")")) %>%
-  select(Severity, `Survival Distribution`)
-
-
-#Finding number of papers, cohorts, individual for each analysis
-data_comp_all2 <- as.data.frame(t(data_comp_all[[2]]))
-data_comp_all2$Severity <- "Combined_all"
-data_comp_us2 <- as.data.frame(t(data_comp_us[[2]]))
-data_comp_us2$Severity <- "Combined_us"
-data_comp_post2 <- as.data.frame(t(data_comp_post[[2]]))
-data_comp_post2$Severity <- "Combined_post"
-data_san2 <- as.data.frame(t(data_san[[2]]))
-data_san2$Severity <- "Sanatorium/hospital"
-data_nosan2 <- as.data.frame(t(data_nosan[[2]]))
-data_nosan2$Severity <- "Non-Sanatorium"
-
-counts_comp <- bind_rows(data_comp_all2, data_comp_us2, data_comp_post2, data_san2, data_nosan2)
-
-#Counts stratified by severity for all studies
-mortality_sev <- mortality %>% filter(severity != "Unknown")
-
-counts_all <- mortality_sev %>%
-  group_by(severity) %>%
-  summarize(nStudies = length(unique(study_id)),
-            nCohorts = length(unique(cohort_id)),
-            nIndividuals = n(),
-            .groups = "drop") %>%
-  mutate(Severity = paste0(severity, "_all"))
-
-
-#Counts stratified by severity for US studies
-mortality_us <- mortality %>% filter(severity != "Unknown",
-                                     study_id %in% c("1029", "93", "45", "63", "67", "90_1016"))
-
-counts_us <- mortality_us %>%
-  group_by(severity) %>%
-  summarize(nStudies = length(unique(study_id)),
-            nCohorts = length(unique(cohort_id)),
-            nIndividuals = n(),
-            .groups = "drop") %>%
-  mutate(Severity = paste0(severity, "_us"))
-
-
-#Counts stratified by severity for US post-1930s subset
-mortality_post <- mortality %>% filter(severity != "Unknown", study_id %in% c("1029", "93", "45"))
-
-counts_post <- mortality_post %>%
-  group_by(severity) %>%
-  summarize(nStudies = length(unique(study_id)),
-            nCohorts = length(unique(cohort_id)),
-            nIndividuals = n(),
-            .groups = "drop") %>%
-  mutate(Severity = paste0(severity, "_post"))
-
-
-counts_initial <- bind_rows(counts_comp, counts_all, counts_us, counts_post) %>%
-  select(Severity, `Number of Studies` = nStudies,
-         `Number of Cohorts` = nCohorts,
-         `Number of Individuals` = nIndividuals)
-
-
-
-#Combining the tables
-final_tab <- dist_tab %>%
-  full_join(pred1_tab, by = c("Severity")) %>%
-  full_join(pred5_tab, by = c("Severity")) %>%
-  full_join(pred10_tab, by = c("Severity")) %>%
-  full_join(counts_initial, by = c("Severity"))
-
-#Separating three tables for paper
-all_tab <- final_tab %>% filter(grepl("all", Severity))
-us_tab <- final_tab %>% filter(grepl("us", Severity))
-post_tab <- final_tab %>% filter(grepl("post", Severity))
-san_tab <- final_tab %>% filter(grepl("San", Severity))
-
-#Variance of frailty terms
-theta <- raw_tab %>%
-  filter(value == "theta") %>%
-  mutate(theta = round(est, 2)) %>%
-  select(label, theta)
-
 
 
 #### Summary Survival Curves -----------------------------------------------------------------------
@@ -230,9 +65,17 @@ ggsave("Figures/summary_curves_all.png", p_sum_all, width = 5.5, height = 8)
 p_sum_us <- plot_sum_curves(form_comp_us, form_sev_us)
 ggsave("Figures/summary_curves_us.png", p_sum_us, width = 5.5, height = 8)
 
+#Non-US studies
+p_sum_nonus <- plot_sum_curves(form_comp_nonus, form_sev_nonus)
+ggsave("Figures/summary_curves_nonus.png", p_sum_nonus, width = 5.5, height = 8)
+
 #US post-1930s studies
 p_sum_post <- plot_sum_curves(form_comp_post, form_sev_post)
 ggsave("Figures/summary_curves_post.png", p_sum_post, width = 5.5, height = 8)
+
+#US pre-1930s studies
+p_sum_pre <- plot_sum_curves(form_comp_pre, form_sev_pre)
+ggsave("Figures/summary_curves_pre.png", p_sum_pre, width = 5.5, height = 8)
 
 
 
@@ -281,9 +124,17 @@ ggsave("Figures/individual_curves_all.png", p_ind_all, width = 5.5, height = 8)
 p_ind_us <- plot_ind_curves(form_comp_us, form_sev_us)
 ggsave("Figures/individual_curves_us.png", p_ind_us, width = 5.5, height = 8)
 
+#Non-US studies
+p_ind_nonus <- plot_ind_curves(form_comp_nonus, form_sev_nonus)
+ggsave("Figures/individual_curves_nonus.png", p_ind_nonus, width = 5.5, height = 8)
+
 #US post-1930s studies
 p_ind_post <- plot_ind_curves(form_comp_post, form_sev_post)
 ggsave("Figures/individual_curves_post.png", p_ind_post, width = 5.5, height = 8)
+
+#US pre-1930s studies
+p_ind_pre <- plot_ind_curves(form_comp_pre, form_sev_pre)
+ggsave("Figures/individual_curves_pre.png", p_ind_pre, width = 5.5, height = 8)
 
 
 
