@@ -193,7 +193,7 @@ final_tab <- dist_tab %>%
 #Separating tables for paper
 all_tab <- final_tab %>% filter(grepl("_all", Severity))
 us_tab <- final_tab %>% filter(grepl("_us", Severity))
-non_us <- final_tab %>% filter(grepl("_nonus", Severity))
+nonus_tab <- final_tab %>% filter(grepl("_nonus", Severity))
 post_tab <- final_tab %>% filter(grepl("_post", Severity))
 pre_tab <- final_tab %>% filter(grepl("_pre", Severity))
 san_tab <- final_tab %>% filter(grepl("San", Severity))
