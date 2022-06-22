@@ -49,7 +49,8 @@ n.thin <- 30
 
 #Subsetting and formatting data
 mortality_comp_nonus <- mortality %>%
-  filter(!study_id %in% c("1029", "93", "45", "63", "67", "90_1016")) %>%
+  filter(!study_id %in% c("1029", "93", "45", "63", "67", "90_1016"),
+         !cohort_id %in% c("79_1023_5", "79_1023_6", "79_1023_7")) %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)))
 
@@ -63,7 +64,8 @@ output_comp_nonus <- run_comp(mortality_comp_nonus,
 
 #Subsetting and formatting data
 mortality_sev_nonus <- mortality %>%
-  filter(!study_id %in% c("1029", "93", "45", "63", "67", "90_1016")) %>%
+  filter(!study_id %in% c("1029", "93", "45", "63", "67", "90_1016"),
+         severity != "Unknown") %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
          sev_mod = as.numeric(severity == "Moderate"),

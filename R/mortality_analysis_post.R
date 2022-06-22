@@ -63,7 +63,8 @@ output_comp_post <- run_comp(mortality_comp_post,
 
 #Subsetting and formatting data
 mortality_sev_post <- mortality %>%
-  filter(study_id %in% c("1029", "93", "45")) %>%
+  filter(study_id %in% c("1029", "93", "45"),
+         severity != "Unknown") %>%
   mutate(study_sev_num = as.numeric(factor(study_sev)),
          study_id_num = as.numeric(factor(study_id)),
          sev_mod = as.numeric(severity == "Moderate"),
